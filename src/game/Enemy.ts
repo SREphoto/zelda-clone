@@ -6,6 +6,14 @@ import { Camera } from './Camera';
 import enemySrc from '../assets/enemies.png';
 import bossSrc from '../assets/bosses.png';
 
+// New Sprites
+import octorokSrc from '../assets/sprites/octorok.png';
+import tektiteSrc from '../assets/sprites/tektite.png';
+import leeverSrc from '../assets/sprites/leever.png';
+import peahatSrc from '../assets/sprites/peahat.png';
+import moblinSrc from '../assets/sprites/moblin.png';
+import lynelSrc from '../assets/sprites/lynel.png';
+
 export const EnemyType = {
     OctorokRed: 0,
     OctorokBlue: 1,
@@ -24,7 +32,12 @@ export const EnemyType = {
     WizzrobeRed: 14,
     WizzrobeBlue: 15,
     Aquamentus: 16,
-    Ganon: 17
+    Ganon: 17,
+    LeeverRed: 18,
+    LeeverBlue: 19,
+    Peahat: 20,
+    LynelRed: 21,
+    LynelBlue: 22
 } as const;
 export type EnemyType = typeof EnemyType[keyof typeof EnemyType];
 
@@ -58,6 +71,7 @@ export class Enemy {
     private sprite: Sprite;
     private bossSprite: Sprite;
     private useBossSprite: boolean = false;
+    private isNewSprite: boolean = false;
     private direction: { x: number, y: number } = { x: 0, y: 1 };
 
     private moveTimer: number = 0;
@@ -85,7 +99,24 @@ export class Enemy {
         this.x = x;
         this.y = y;
         this.type = type;
-        this.sprite = new Sprite(enemySrc);
+
+        let src = enemySrc;
+        this.isNewSprite = false;
+
+        // Select specific sprite if available
+        if (this.type === EnemyType.OctorokRed || this.type === EnemyType.OctorokBlue) { src = octorokSrc; this.isNewSprite = true; }
+        else if (this.type === EnemyType.TektiteRed || this.type === EnemyType.TektiteBlue) { src = tektiteSrc; this.isNewSprite = true; }
+        else if (this.type === EnemyType.MoblinRed || this.type === EnemyType.MoblinBlue) { src = moblinSrc; this.isNewSprite = true; }
+        else if (this.type === EnemyType.LeeverRed || this.type === EnemyType.LeeverBlue) { src = leeverSrc; this.isNewSprite = true; }
+        else if (this.type === EnemyType.Peahat) { src = peahatSrc; this.isNewSprite = true; }
+        else if (this.type === EnemyType.LynelRed || this.type === EnemyType.LynelBlue) { src = lynelSrc; this.isNewSprite = true; }
+        // Note: Leever, Peahat, Lynel are not in EnemyType enum yet or I missed them? 
+        // Checking EnemyType enum... 
+        // It has Octorok, Tektite, Moblin, Darknut, Dodongo, Gohma, Stalfos, Keese, Zol, Gel, Wizzrobe, Aquamentus, Ganon.
+        // It does NOT have Leever, Peahat, Lynel. 
+        // I should add them to EnemyType if I want to use them. For now, I'll just map the ones that exist.
+
+        this.sprite = new Sprite(src);
         this.bossSprite = new Sprite(bossSrc);
 
         // Determine if boss
@@ -310,11 +341,6 @@ export class Enemy {
 
             this.x = nextX;
             this.y = nextY;
-
-            // Randomly change direction while flying
-            if (Math.random() < 0.05) {
-                this.changeDirection();
-            }
 
             if (this.moveTimer <= 0) {
                 this.state = EnemyState.Resting;
@@ -747,13 +773,6 @@ export class Enemy {
     public takeDamage(amount: number, knockbackDir: { x: number, y: number }, weaponType: 'sword' | 'boomerang' | 'arrow' | 'bomb' | 'silver-arrow' = 'sword') {
         if (this.invulnerabilityTimer > 0) return;
 
-        // Boomerang always stuns (no damage)
-        if (weaponType === 'boomerang') {
-            this.stunTimer = 2.0;
-            console.log('Enemy Stunned by Boomerang!');
-            return;
-        }
-
         // Check Immunities
         let immune = false;
         if (weaponType === 'sword' && (this.immunityFlags & 1)) immune = true;
@@ -762,6 +781,13 @@ export class Enemy {
         if (weaponType === 'bomb' && (this.immunityFlags & 8)) immune = true;
 
         if (immune) {
+            return;
+        }
+
+        // Boomerang always stuns (no damage)
+        if (weaponType === 'boomerang') {
+            this.stunTimer = 2.0;
+            console.log('Enemy Stunned by Boomerang!');
             return;
         }
 
@@ -894,16 +920,45 @@ export class Enemy {
 
         const spriteToUse = this.useBossSprite ? this.bossSprite : this.sprite;
 
-        spriteToUse.draw(
-            ctx,
-            screenX,
-            screenY,
-            0, 0,
-            spriteToUse.width,
-            spriteToUse.height,
-            this.width,
-            this.height
-        );
+        if (this.isNewSprite) {
+            // New Sprite Logic (4x4 Grid: Down, Up, Left, Right)
+            let row = 0;
+            if (this.direction.y > 0) row = 0; // Down
+            else if (this.direction.y < 0) row = 1; // Up
+            else if (this.direction.x < 0) row = 2; // Left
+            else if (this.direction.x > 0) row = 3; // Right
+
+            // Simple Animation (4 frames)
+            const numFrames = 4;
+            const frameIndex = Math.floor(Date.now() / 200) % numFrames;
+
+            const frameW = spriteToUse.width / 4;
+            const frameH = spriteToUse.height / 4;
+
+            spriteToUse.draw(
+                ctx,
+                screenX,
+                screenY,
+                frameIndex,
+                row,
+                frameW,
+                frameH,
+                this.width,
+                this.height
+            );
+        } else {
+            // Old Sprite Logic (Full Image)
+            spriteToUse.draw(
+                ctx,
+                screenX,
+                screenY,
+                0, 0,
+                spriteToUse.width,
+                spriteToUse.height,
+                this.width,
+                this.height
+            );
+        }
 
         // Render Gohma Eye
         if (this.type === EnemyType.Gohma) {

@@ -1,4 +1,5 @@
 import { Camera } from './Camera';
+import { OverworldData, TILE_FLOOR, TILE_WALL, TILE_WATER, TILE_BLOCK } from './data/OverworldData';
 
 export class Tilemap {
     public tiles: number[][];
@@ -9,45 +10,14 @@ export class Tilemap {
     public static readonly ROOM_HEIGHT = 11;
 
     // World dimensions in rooms
-    public static readonly WORLD_COLS = 4;
-    public static readonly WORLD_ROWS = 4;
+    public static readonly WORLD_COLS = 16;
+    public static readonly WORLD_ROWS = 8;
 
-    // Tile Types
-    public static readonly TILE_FLOOR = 0;
-    public static readonly TILE_WALL = 1;
-    public static readonly TILE_WATER = 2;
-    public static readonly TILE_BLOCK = 3;
-
-    // Custom Room Layouts (x,y string key)
-    // 16x11 Grid
-    private static readonly CustomLayouts: Record<string, number[][]> = {
-        "2,0": [ // Stalfos / Item Room
-            [1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 0, 1],
-            [1, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Door Right
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 0, 1],
-            [1, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1]
-        ],
-        "2,1": [ // Aquamentus Room
-            [1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 1], // Water
-            [1, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Door Right
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 1],
-            [1, 0, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        ]
-    };
+    // Tile Types (re-export for backwards compatibility)
+    public static readonly TILE_FLOOR = TILE_FLOOR;
+    public static readonly TILE_WALL = TILE_WALL;
+    public static readonly TILE_WATER = TILE_WATER;
+    public static readonly TILE_BLOCK = TILE_BLOCK;
 
     public get width() { return this.tiles[0].length * this.tileSize; }
     public get height() { return this.tiles.length * this.tileSize; }
@@ -67,68 +37,31 @@ export class Tilemap {
             this.tiles.push(row);
         }
 
-        // Generate each room
+        // Load each screen from OverworldData
         for (let ry = 0; ry < Tilemap.WORLD_ROWS; ry++) {
             for (let rx = 0; rx < Tilemap.WORLD_COLS; rx++) {
-                this.generateRoom(rx, ry);
+                this.loadScreen(rx, ry);
             }
         }
     }
 
-    private generateRoom(roomX: number, roomY: number) {
+    private loadScreen(roomX: number, roomY: number) {
         const startX = roomX * Tilemap.ROOM_WIDTH;
         const startY = roomY * Tilemap.ROOM_HEIGHT;
         const key = `${roomX},${roomY}`;
 
-        // Check for Custom Layout
-        if (Tilemap.CustomLayouts[key]) {
-            const layout = Tilemap.CustomLayouts[key];
-            for (let y = 0; y < Tilemap.ROOM_HEIGHT; y++) {
-                for (let x = 0; x < Tilemap.ROOM_WIDTH; x++) {
-                    this.tiles[startY + y][startX + x] = layout[y][x];
-                }
-            }
+        // Get screen data
+        const screenData = OverworldData[key];
+        if (!screenData) {
+            console.warn(`No data for screen ${key}`);
             return;
         }
 
-        // Basic Room Template (Walls on edges)
+        // Copy tile data
         for (let y = 0; y < Tilemap.ROOM_HEIGHT; y++) {
             for (let x = 0; x < Tilemap.ROOM_WIDTH; x++) {
-                const globalX = startX + x;
-                const globalY = startY + y;
-
-                // Edges
-                if (x === 0 || x === Tilemap.ROOM_WIDTH - 1 || y === 0 || y === Tilemap.ROOM_HEIGHT - 1) {
-                    this.tiles[globalY][globalX] = Tilemap.TILE_WALL;
-                } else {
-                    this.tiles[globalY][globalX] = Tilemap.TILE_FLOOR;
-                }
-
-                // Add "Doors" (gaps in middle of walls)
-                const midX = Math.floor(Tilemap.ROOM_WIDTH / 2);
-                const midY = Math.floor(Tilemap.ROOM_HEIGHT / 2);
-
-                if (x >= midX - 1 && x <= midX && (y === 0 || y === Tilemap.ROOM_HEIGHT - 1)) {
-                    this.tiles[globalY][globalX] = Tilemap.TILE_FLOOR; // Vertical Doors (2 wide)
-                }
-                if (y >= midY - 1 && y <= midY && (x === 0 || x === Tilemap.ROOM_WIDTH - 1)) {
-                    this.tiles[globalY][globalX] = Tilemap.TILE_FLOOR; // Horizontal Doors (2 high)
-                }
+                this.tiles[startY + y][startX + x] = screenData.tiles[y][x];
             }
-        }
-
-        // Add random obstacles inside (avoiding center and doors)
-        const seed = roomX * 10 + roomY; // Simple pseudo-random
-        if (seed % 3 === 0) {
-            // Pattern: Center Block
-            this.tiles[startY + 5][startX + 7] = Tilemap.TILE_BLOCK;
-            this.tiles[startY + 5][startX + 8] = Tilemap.TILE_BLOCK;
-        } else if (seed % 3 === 1) {
-            // Pattern: Four Corners
-            this.tiles[startY + 2][startX + 2] = Tilemap.TILE_BLOCK;
-            this.tiles[startY + 2][startX + 13] = Tilemap.TILE_BLOCK;
-            this.tiles[startY + 8][startX + 2] = Tilemap.TILE_BLOCK;
-            this.tiles[startY + 8][startX + 13] = Tilemap.TILE_BLOCK;
         }
     }
 

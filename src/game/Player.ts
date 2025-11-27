@@ -246,4 +246,8 @@ export class Player {
         const dot = px * projectileDir.x + py * projectileDir.y;
         return dot < -0.5;
     }
+
+    public getBounds() {
+        return { x: this.x, y: this.y, width: this.width, height: this.height };
+    }
 }
