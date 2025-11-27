@@ -486,7 +486,40 @@ export class Game {
             }
         }
 
+        // Update Doors
+        this.doors.forEach(door => door.update(dt));
+
+        // Check player-door interaction
+        this.doors.forEach(door => {
+            if (this.checkCollision(door.getBounds(), this.player)) {
+                if (door.isLocked) {
+                    // Try to unlock with key
+                    if (this.player.keys > 0) {
+                        door.unlock();
+                        this.player.keys--;
+                        console.log('Door unlocked! Keys remaining:', this.player.keys);
+                    } else {
+                        console.log('Door is locked! Need a key.');
+                    }
+                } else if (door.isOpen) {
+                    // Can pass through open door
+                    console.log('Passing through open door...');
+                }
+            }
+        });
+
+        // Update Secret Walls
+        this.secretWalls.forEach(wall => {
+            if (!wall.isRevealed && this.checkCollision(wall.getBounds(), this.player)) {
+                if (!wall.requiresCandle || this.player.hasCandle) {
+                    wall.reveal();
+                    console.log('Secret wall revealed!');
+                }
+            }
+        });
+
         // Update Bombs
+
         for (let i = this.bombs.length - 1; i >= 0; i--) {
             const bomb = this.bombs[i];
             bomb.update(dt);
