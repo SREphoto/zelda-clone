@@ -824,7 +824,7 @@ export class Game {
         });
 
         this.secretWalls.forEach(wall => {
-            if (this.ctx && this.camera && wall.isRevealed) {
+            if (this.ctx && this.camera && !wall.isRevealed) {
                 wall.render(this.ctx, this.camera);
             }
         });
