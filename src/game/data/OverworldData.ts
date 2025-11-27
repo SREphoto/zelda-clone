@@ -197,7 +197,7 @@ export const OverworldData: Record<string, ScreenData> = {
         ]
     },
 
-    // Screen (1,2) - Gel/Zol room
+    // Screen (1,2) - Gel/Zol room with secret
     "1,2": {
         tiles: createDefaultRoom(),
         enemies: [
@@ -208,6 +208,9 @@ export const OverworldData: Record<string, ScreenData> = {
         ],
         items: [
             { type: ItemType.Candle, x: 250, y: 150 }
+        ],
+        secretWalls: [
+            { x: 32, y: 160, requiresCandle: true }  // Secret requires candle to reveal
         ]
     },
 
