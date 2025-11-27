@@ -167,14 +167,18 @@ export const OverworldData: Record<string, ScreenData> = {
         ]
     },
 
-    // Screen (3,1) - Ganon Boss Room
+    // Screen (3,1) - Ganon Boss Room with Triforce
     "3,1": {
         tiles: createDefaultRoom(),
         enemies: [
             { type: EnemyType.Ganon, x: 256, y: 176 }
         ],
         items: [
-            { type: ItemType.Fairy, x: 100, y: 250 }
+            { type: ItemType.Fairy, x: 100, y: 250 },
+            { type: ItemType.Triforce, x: 256, y: 80 }  // Victory item!
+        ],
+        doors: [
+            { x: 256, y: 32, direction: 'up', isLocked: true }  // Locked door protecting Triforce
         ]
     },
 
