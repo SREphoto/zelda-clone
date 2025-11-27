@@ -178,7 +178,7 @@ export const OverworldData: Record<string, ScreenData> = {
         ]
     },
 
-    // Screen (0,2) - Darknut room
+    // Screen (0,2) - Darknut room with locked door
     "0,2": {
         tiles: createDefaultRoom(),
         enemies: [
@@ -188,6 +188,12 @@ export const OverworldData: Record<string, ScreenData> = {
         items: [
             { type: ItemType.Key, x: 200, y: 200 },
             { type: ItemType.RupeeGreen, x: 300, y: 150 }
+        ],
+        doors: [
+            { x: 224, y: 32, direction: 'up', isLocked: true }  // Locked door at top
+        ],
+        secretWalls: [
+            { x: 480, y: 160, requiresCandle: false }  // Secret wall on right side
         ]
     },
 
