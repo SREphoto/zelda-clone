@@ -3,7 +3,7 @@ import { Camera } from './Camera';
 export class WorldMap {
     private visitedRooms: Set<string> = new Set();
     private currentRoom: { x: number, y: number } = { x: 0, y: 0 };
-    private worldSize: { width: number, height: number } = { width: 4, height: 4 };
+    private worldSize: { width: number, height: number } = { width: 16, height: 8 };
 
     public markRoomVisited(roomX: number, roomY: number) {
         this.visitedRooms.add(`${roomX},${roomY}`);

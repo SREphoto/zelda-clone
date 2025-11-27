@@ -179,11 +179,7 @@ export class Game {
 
         // Check for Room Transition
         this.checkRoomTransition();
-
-        // Check for Exits (Caves/Dungeons)
-        this.checkExits();
         this.checkDoors(dt);
-        this.checkSecrets();
 
         // Handle Bomb Input (Z key)
         if (this.input.isPressed('KeyZ')) {
