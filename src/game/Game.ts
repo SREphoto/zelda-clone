@@ -11,7 +11,7 @@ import { Arrow } from './Arrow';
 import { HUD } from './HUD';
 import { WorldMap } from './WorldMap';
 import { Boomerang } from './Boomerang';
-import { GameState, TitleScreen, GameOverScreen, VictoryScreen } from './GameState';
+import { GameState, TitleScreen, GameOverScreen, VictoryScreen, CaveScreen } from './GameState';
 import { Door, SecretWall } from './Door';
 import { OverworldData } from './data/OverworldData';
 
@@ -51,6 +51,12 @@ export class Game {
     private titleScreen: TitleScreen;
     private gameOverScreen: GameOverScreen;
     private victoryScreen: VictoryScreen;
+    private caveScreen: CaveScreen;
+
+    // Cave Data
+    private currentCaveText: string = "";
+    private currentCaveItems: Array<{ type: ItemType, price?: number }> | null = null;
+    private currentCaveSelection: number = 0;
 
     // Doors and Secrets
     private doors: Door[] = [];
@@ -58,7 +64,6 @@ export class Game {
 
     // Room Transition State
     private isTransitioning: boolean = false;
-    private transitionProgress: number = 0;
     private transitionDir: { x: number, y: number } = { x: 0, y: 0 };
     private nextCameraPos: { x: number, y: number } = { x: 0, y: 0 };
     private static TRANSITION_SPEED = 500; // Pixels per second
@@ -70,6 +75,7 @@ export class Game {
         this.titleScreen = new TitleScreen();
         this.gameOverScreen = new GameOverScreen();
         this.victoryScreen = new VictoryScreen();
+        this.caveScreen = new CaveScreen();
     }
 
     public init(canvas: HTMLCanvasElement, onHealthChange: (health: number) => void) {
@@ -91,9 +97,6 @@ export class Game {
         this.input = new Input();
 
         // Start in Room 7,7 (Start Room)
-        // 7 * 16 * 32 = 3584
-        // 7 * 11 * 32 = 2464
-        // Center of room: + (8*32, 5.5*32) = +256, +176
         const startRoomX = 7;
         const startRoomY = 7;
         this.camera.x = startRoomX * this.width;
@@ -110,11 +113,6 @@ export class Game {
         console.log('Game Initialized', this.width, this.height);
 
         this.loop.start();
-    }
-
-    public destroy() {
-        this.loop.stop();
-        this.input?.destroy();
     }
 
     private update(dt: number) {
@@ -151,6 +149,59 @@ export class Game {
             return;
         }
 
+        // Handle Cave
+        if (this.gameState === GameState.CAVE) {
+            // Exit cave if walking down
+            if (this.input.isDown('ArrowDown') || this.input.isDown('KeyS')) {
+                this.gameState = GameState.PLAYING;
+                // Move player slightly down to avoid re-entering immediately
+                if (this.player) this.player.y += 32;
+            }
+
+            // Handle Selection
+            if (this.input.isPressed('ArrowLeft') || this.input.isPressed('KeyA')) {
+                if (this.currentCaveItems) {
+                    this.currentCaveSelection = (this.currentCaveSelection - 1 + this.currentCaveItems.length) % this.currentCaveItems.length;
+                }
+            }
+            if (this.input.isPressed('ArrowRight') || this.input.isPressed('KeyD')) {
+                if (this.currentCaveItems) {
+                    this.currentCaveSelection = (this.currentCaveSelection + 1) % this.currentCaveItems.length;
+                }
+            }
+
+            // Buy/Take Item
+            if (this.currentCaveItems && this.currentCaveItems.length > 0 && this.input.isPressed('Space')) {
+                const item = this.currentCaveItems[this.currentCaveSelection];
+
+                if (item.price) {
+                    if (this.rupees >= item.price) {
+                        this.rupees -= item.price;
+                        this.collectItem({ type: item.type } as Item);
+                        // Remove item from shop? Or keep it? 
+                        // Usually shops in Zelda 1 keep items (except maybe unique ones).
+                        // For now, let's keep it but maybe show a message.
+                        console.log('Bought item for ' + item.price);
+
+                        // If it's a one-time item (like Heart Container), maybe remove it?
+                        // For simplicity, we'll just kick player out of cave after purchase like original game often did
+                        this.gameState = GameState.PLAYING;
+                        if (this.player) this.player.y += 32;
+                    } else {
+                        console.log('Not enough Rupees!');
+                        // Maybe flash text?
+                    }
+                } else {
+                    // Free item
+                    this.collectItem({ type: item.type } as Item);
+                    this.currentCaveItems = null; // Taken
+                    this.gameState = GameState.PLAYING;
+                    if (this.player) this.player.y += 32;
+                }
+            }
+            return;
+        }
+
         // Main game logic
         if (!this.player || !this.tilemap || !this.camera) return;
 
@@ -180,6 +231,7 @@ export class Game {
         // Check for Room Transition
         this.checkRoomTransition();
         this.checkDoors(dt);
+        this.checkCaves();
 
         // Handle Bomb Input (Z key)
         if (this.input.isPressed('KeyZ')) {
@@ -214,7 +266,7 @@ export class Game {
                 else if (p.direction === 'left') { dir.x = -1; bx -= 8; }
                 else if (p.direction === 'right') { dir.x = 1; bx += 8; }
 
-                this.boomerangs.push(new Boomerang(bx, by, dir));
+                this.boomerangs.push(new Boomerang(bx, by, dir, this.player));
                 console.log('Boomerang Thrown!');
             }
         }
@@ -271,7 +323,6 @@ export class Game {
         }
     }
 
-
     private checkDoors(dt: number) {
         const player = this.player;
         if (!player) return;
@@ -304,8 +355,50 @@ export class Game {
         });
     }
 
+    private checkCaves() {
+        if (!this.player || !this.camera) return;
 
-    // Room Data Removed - Loaded from OverworldData
+        const roomX = Math.floor(this.camera.x / this.width);
+        const roomY = Math.floor(this.camera.y / this.height);
+        const key = `${roomX},${roomY}`;
+        const screenData = OverworldData[key];
+
+        if (screenData && screenData.caveEntrance) {
+            const entrance = screenData.caveEntrance;
+            const worldX = entrance.x + this.camera.x;
+            const worldY = entrance.y + this.camera.y;
+
+            // Simple distance check
+            const dx = (this.player.x + this.player.width / 2) - worldX;
+            const dy = (this.player.y + this.player.height / 2) - worldY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 16) {
+                console.log("Entering Cave!");
+                this.gameState = GameState.CAVE;
+                this.currentCaveText = entrance.text || "";
+                // Check if item is already taken? For now, just show it if it exists in data
+                // In a real game, we'd check a "save data" flag
+                // For this MVP, we'll just check if there's an item in the room data that matches
+                // Actually, OverworldData has 'items' array for the screen.
+                // But usually the cave item is separate.
+                // Let's assume the first item in the screen data is the cave item if we are in a cave screen
+                if (screenData.items && screenData.items.length > 0) {
+                    // Filter items that are "cave items" (usually all items in a cave screen are cave items)
+                    // But wait, OverworldData structure puts items in the room.
+                    // If we are in a cave, we want to show THESE items in the cave screen.
+                    // We should probably NOT spawn them as world items if we are entering a cave?
+                    // Actually, spawnEnemies() spawns them.
+                    // But checkCaves() is called when we are close to entrance.
+                    // We should use the items from screenData.
+                    this.currentCaveItems = screenData.items;
+                    this.currentCaveSelection = 0;
+                } else {
+                    this.currentCaveItems = null;
+                }
+            }
+        }
+    }
 
     private spawnEnemies() {
         if (!this.camera) return;
@@ -332,7 +425,8 @@ export class Game {
                 // Coordinates in data are relative to the room
                 const worldX = e.x + this.camera!.x;
                 const worldY = e.y + this.camera!.y;
-                this.enemies.push(new Enemy(worldX, worldY, e.type));
+                // Cast e.type to EnemyType (assuming number is compatible or needs cast)
+                this.enemies.push(new Enemy(worldX, worldY, e.type as unknown as EnemyType));
             });
         }
 
@@ -363,7 +457,6 @@ export class Game {
             });
         }
     }
-
 
     private startTransition(dir: { x: number, y: number }) {
         if (!this.camera || !this.player) return;
@@ -401,9 +494,7 @@ export class Game {
             }
         }
 
-        // Move Player:
-        // In Zelda 1, player moves about 2 tiles (64px) during the transition (256px camera move).
-        // Ratio: 40 / 512 = ~0.08
+        // Move Player
         const playerSpeedRatio = 0.08;
         this.player.x += this.transitionDir.x * speed * playerSpeedRatio;
         this.player.y += this.transitionDir.y * speed * playerSpeedRatio;
@@ -431,8 +522,8 @@ export class Game {
         }
 
         this.spawnEnemies();
-        this.projectiles = []; // Clear projectiles on room change
-        this.items = []; // Clear items? Maybe keep them? Zelda 1 clears them.
+        this.projectiles = [];
+        this.items = []; // Clear items on room change (Zelda 1 style)
 
         // Update world map
         if (this.camera) {
@@ -445,7 +536,7 @@ export class Game {
 
         // Update Enemies
         this.enemies.forEach(enemy => {
-            enemy.update(dt, this.tilemap!, this.projectiles, this.player!);
+            enemy.update(dt, this.tilemap!, this.projectiles, this.player!, this.boomerangs);
         });
 
         // Update Projectiles
@@ -486,32 +577,10 @@ export class Game {
             }
         }
 
-        // Update Doors
-        this.doors.forEach(door => door.update(dt));
-
-        // Check player-door interaction
-        this.doors.forEach(door => {
-            if (this.checkCollision(door.getBounds(), this.player)) {
-                if (door.isLocked) {
-                    // Try to unlock with key
-                    if (this.player.keys > 0) {
-                        door.unlock();
-                        this.player.keys--;
-                        console.log('Door unlocked! Keys remaining:', this.player.keys);
-                    } else {
-                        console.log('Door is locked! Need a key.');
-                    }
-                } else if (door.isOpen) {
-                    // Can pass through open door
-                    console.log('Passing through open door...');
-                }
-            }
-        });
-
         // Update Secret Walls
         this.secretWalls.forEach(wall => {
-            if (!wall.isRevealed && this.checkCollision(wall.getBounds(), this.player)) {
-                if (!wall.requiresCandle || this.player.hasCandle) {
+            if (!wall.isRevealed && this.checkCollision(wall.getBounds(), this.player!)) {
+                if (!wall.requiresCandle || this.player!.hasCandle) {
                     wall.reveal();
                     console.log('Secret wall revealed!');
                 }
@@ -519,7 +588,6 @@ export class Game {
         });
 
         // Update Bombs
-
         for (let i = this.bombs.length - 1; i >= 0; i--) {
             const bomb = this.bombs[i];
             bomb.update(dt);
@@ -574,7 +642,7 @@ export class Game {
         // Update Boomerangs
         for (let i = this.boomerangs.length - 1; i >= 0; i--) {
             const boomerang = this.boomerangs[i];
-            boomerang.update(dt, this.player);
+            boomerang.update(dt);
 
             if (boomerang.shouldRemove) {
                 this.boomerangs.splice(i, 1);
@@ -619,6 +687,39 @@ export class Game {
         if (this.player.health > 0) {
             for (const enemy of this.enemies) {
                 if (this.checkCollision(this.player, enemy)) {
+                    // Bubble Logic (No Damage, just curse)
+                    if (enemy.type === EnemyType.Bubble) {
+                        if (this.player.swordDisabledTimer <= 0) {
+                            this.player.swordDisabledTimer = 3.0;
+                            console.log('Sword Cursed!');
+                        }
+                        continue;
+                    }
+
+                    // Like Like Logic (Eat Shield)
+                    if (enemy.type === EnemyType.LikeLike) {
+                        if (this.player.hasMagicalShield) {
+                            this.player.hasMagicalShield = false;
+                            this.player.shieldLevel = 1;
+                            console.log('Shield Eaten!');
+                        }
+                    }
+
+                    // Wallmaster Logic (Send to Start)
+                    if (enemy.type === EnemyType.Wallmaster) {
+                        console.log('Caught by Wallmaster!');
+                        // Reset to start room (7,7)
+                        const startRoomX = 7;
+                        const startRoomY = 7;
+                        this.camera!.x = startRoomX * this.width;
+                        this.camera!.y = startRoomY * this.height;
+                        this.player.x = this.camera!.x + 256;
+                        this.player.y = this.camera!.y + 240;
+                        this.spawnEnemies();
+                        this.worldMap.updateCurrentRoom(this.camera!, this.width, this.height);
+                        return;
+                    }
+
                     this.player.takeDamage(0.5, enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
                     this.tenCount = 0;
                     this.bombFlag = false;
@@ -881,6 +982,8 @@ export class Game {
             this.gameOverScreen.render(this.ctx, this.ctx.canvas.width, this.ctx.canvas.height);
         } else if (this.gameState === GameState.VICTORY) {
             this.victoryScreen.render(this.ctx, this.ctx.canvas.width, this.ctx.canvas.height);
+        } else if (this.gameState === GameState.CAVE) {
+            this.caveScreen.render(this.ctx, this.ctx.canvas.width, this.ctx.canvas.height, this.currentCaveText, this.currentCaveItems, this.currentCaveSelection);
         }
     }
 
@@ -889,5 +992,13 @@ export class Game {
         this.gameState = GameState.PLAYING;
         this.init(this.ctx.canvas, (_h) => { });
         console.log('Game Restarted!');
+    }
+
+    public destroy() {
+        this.loop.stop();
+        if (this.input) {
+            this.input.destroy();
+        }
+        console.log('Game Destroyed');
     }
 }

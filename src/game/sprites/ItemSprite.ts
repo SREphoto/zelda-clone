@@ -1,9 +1,7 @@
-import { Sprite } from '../Sprite';
 import { ItemType } from '../Item';
 
-export class ItemSprite extends Sprite {
+export class ItemSprite {
     constructor() {
-        super(''); // No image, draw manually
     }
 
     /**
@@ -15,8 +13,8 @@ export class ItemSprite extends Sprite {
         _frameY: number,
         _frameWidth: number,
         _frameHeight: number,
-        width: number,
-        height: number,
+        _width: number,
+        _height: number,
         itemType: number,
         camera: { x: number; y: number },
         x: number,

@@ -28,6 +28,14 @@ export class Arrow {
         }
     }
 
+    public get rotation(): number {
+        if (this.direction.x > 0) return 0;
+        if (this.direction.x < 0) return Math.PI;
+        if (this.direction.y > 0) return Math.PI / 2;
+        if (this.direction.y < 0) return -Math.PI / 2;
+        return 0;
+    }
+
     public update(dt: number) {
         this.x += this.direction.x * this.speed * dt;
         this.y += this.direction.y * this.speed * dt;

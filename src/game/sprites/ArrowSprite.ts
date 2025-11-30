@@ -1,9 +1,7 @@
-import { Sprite } from '../Sprite';
 import { Arrow } from '../Arrow';
 
-export class ArrowSprite extends Sprite {
+export class ArrowSprite {
     constructor() {
-        super('');
     }
 
     /**

@@ -6,6 +6,7 @@ export const GameCanvas = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const gameRef = useRef<Game | null>(null);
     const [health, setHealth] = useState(3);
+    console.log('GameCanvas rendering');
 
     useEffect(() => {
         if (!canvasRef.current) return;

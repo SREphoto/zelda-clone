@@ -1,5 +1,9 @@
-import { Tilemap } from './Tilemap';
-import { Player } from './Player';
+export interface BoomerangOwner {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
 
 export class Boomerang {
     public x: number;
@@ -13,14 +17,18 @@ export class Boomerang {
     public maxDistance: number = 150;
     public shouldRemove: boolean = false;
     public damage: number = 0; // Stuns instead of damage
+    public owner: BoomerangOwner;
+    public rotation: number = 0;
 
-    constructor(x: number, y: number, direction: { x: number, y: number }) {
+    constructor(x: number, y: number, direction: { x: number, y: number }, owner: BoomerangOwner) {
         this.x = x;
         this.y = y;
         this.direction = direction;
+        this.owner = owner;
     }
 
-    public update(dt: number, player: Player) {
+    public update(dt: number) {
+        this.rotation += 15 * dt; // Spin
         const moveAmt = this.speed * dt;
 
         if (this.state === 'outward') {
@@ -32,9 +40,9 @@ export class Boomerang {
                 this.state = 'returning';
             }
         } else {
-            // Return to player
-            const dx = (player.x + player.width / 2) - (this.x + this.width / 2);
-            const dy = (player.y + player.height / 2) - (this.y + this.height / 2);
+            // Return to owner
+            const dx = (this.owner.x + this.owner.width / 2) - (this.x + this.width / 2);
+            const dy = (this.owner.y + this.owner.height / 2) - (this.y + this.height / 2);
             const dist = Math.sqrt(dx * dx + dy * dy);
 
             if (dist < 10) {

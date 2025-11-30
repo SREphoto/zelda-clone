@@ -1,9 +1,6 @@
-import { Sprite } from '../Sprite';
-
-export class PlayerSprite extends Sprite {
+export class PlayerSprite {
     constructor() {
         // Call parent with a dummy image (null) because we will override draw
-        super('');
     }
 
     // Draw the player with optional equipment overlays

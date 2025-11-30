@@ -1,9 +1,7 @@
-import { Sprite } from '../Sprite';
 import { Enemy } from '../Enemy';
 
-export class EnemySprite extends Sprite {
+export class EnemySprite {
     constructor() {
-        super(''); // No image, we draw manually
     }
 
     /**

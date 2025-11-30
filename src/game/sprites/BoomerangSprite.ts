@@ -1,9 +1,7 @@
-import { Sprite } from '../Sprite';
 import { Boomerang } from '../Boomerang';
 
-export class BoomerangSprite extends Sprite {
+export class BoomerangSprite {
     constructor() {
-        super('');
     }
 
     /**

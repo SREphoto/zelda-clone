@@ -1,9 +1,7 @@
-import { Sprite } from '../Sprite';
 import { Projectile } from '../Projectile';
 
-export class ProjectileSprite extends Sprite {
+export class ProjectileSprite {
     constructor() {
-        super('');
     }
 
     /**

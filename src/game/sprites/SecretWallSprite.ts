@@ -1,9 +1,7 @@
-import { Sprite } from '../Sprite';
 import { SecretWall } from '../Door';
 
-export class SecretWallSprite extends Sprite {
+export class SecretWallSprite {
     constructor() {
-        super('/sprites/dungeon.png');
     }
 
     public draw(

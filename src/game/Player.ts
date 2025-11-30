@@ -44,6 +44,7 @@ export class Player {
     private static INVULNERABILITY_DURATION = 1.5;
     private knockbackTimer: number = 0;
     private knockbackVelocity: { x: number, y: number } = { x: 0, y: 0 };
+    public swordDisabledTimer: number = 0;
 
     private sprite: Sprite;
     private animations: { [key: string]: Animation };
@@ -78,6 +79,11 @@ export class Player {
             this.invulnerabilityTimer -= dt;
         }
 
+        // Handle Sword Disable (Bubble Curse)
+        if (this.swordDisabledTimer > 0) {
+            this.swordDisabledTimer -= dt;
+        }
+
         // Handle Knockback
         if (this.knockbackTimer > 0) {
             this.knockbackTimer -= dt;
@@ -93,7 +99,7 @@ export class Player {
             return; // Don't move while attacking
         }
 
-        if (input.isDown('Space')) {
+        if (input.isDown('Space') && this.swordDisabledTimer <= 0) {
             this.attack();
             return;
         }

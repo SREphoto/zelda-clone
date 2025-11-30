@@ -3,7 +3,8 @@ export const GameState = {
     PLAYING: 1,
     PAUSED: 2,
     GAME_OVER: 3,
-    VICTORY: 4
+    VICTORY: 4,
+    CAVE: 5
 } as const;
 
 export type GameState = typeof GameState[keyof typeof GameState];
@@ -112,5 +113,72 @@ export class VictoryScreen {
         ctx.fillStyle = '#AAAAAA';
         ctx.font = '20px monospace';
         ctx.fillText('Press SPACE to play again', width / 2, height / 2 + 150);
+    }
+}
+
+export class CaveScreen {
+    public render(ctx: CanvasRenderingContext2D, width: number, height: number, text: string, items: Array<{ type: any, price?: number }> | null, selectedIndex: number = 0) {
+        // Black background
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, width, height);
+
+        // Walls (simple box)
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(50, 50, width - 100, height - 100);
+
+        // Old Man / Woman / Merchant (Red/White square for now)
+        ctx.fillStyle = '#FF0000';
+        ctx.fillRect(width / 2 - 16, height / 2 - 48, 32, 32);
+
+        // Fire (Two red/orange squares)
+        const time = Date.now();
+        const flicker = Math.sin(time / 100) > 0;
+        ctx.fillStyle = flicker ? '#FF4400' : '#FF8800';
+        ctx.fillRect(width / 2 - 64, height / 2 - 48, 32, 32);
+        ctx.fillRect(width / 2 + 32, height / 2 - 48, 32, 32);
+
+        // Text
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 20px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(text, width / 2, height / 2 - 90);
+
+        // Items
+        if (items && items.length > 0) {
+            const startX = width / 2 - ((items.length - 1) * 60) / 2;
+
+            items.forEach((item, index) => {
+                const x = startX + index * 60;
+                const y = height / 2 + 30;
+
+                // Selection Highlight
+                if (index === selectedIndex) {
+                    ctx.fillStyle = '#FFFF00'; // Yellow highlight
+                    ctx.fillRect(x - 20, y - 20, 40, 40);
+                }
+
+                // Draw item (placeholder circle if no sprite)
+                ctx.fillStyle = '#00FF00'; // Green item
+                ctx.beginPath();
+                ctx.arc(x, y, 16, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Price
+                if (item.price !== undefined) {
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = '16px monospace';
+                    ctx.fillText(item.price.toString(), x, y + 30);
+
+                    // Rupee symbol (simple X)
+                    ctx.font = '12px monospace';
+                    ctx.fillText('X', x - 15, y + 30);
+                }
+            });
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '16px monospace';
+            ctx.fillText('SELECT WITH ARROWS, SPACE TO BUY/TAKE', width / 2, height / 2 + 100);
+        }
     }
 }
