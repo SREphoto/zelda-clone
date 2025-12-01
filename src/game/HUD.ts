@@ -32,15 +32,48 @@ export class HUD {
                 frameX = 1; // Half
             }
 
-            this.hearts.draw(
-                ctx,
-                350 + (i % 8) * (heartWidth * scale + spacing), // Wrap after 8 hearts
-                8 + Math.floor(i / 8) * 10,
-                frameX, 0,
-                heartWidth, heartHeight,
-                heartWidth * scale,
-                heartHeight * scale
-            );
+            // Procedural Heart Drawing
+            const hx = 350 + (i % 8) * (heartWidth * scale + spacing);
+            const hy = 8 + Math.floor(i / 8) * 10;
+            const size = heartWidth * scale;
+
+            ctx.save();
+            ctx.translate(hx, hy);
+
+            // Draw Empty Heart Background
+            ctx.fillStyle = '#000000'; // Black background
+            ctx.fillRect(0, 0, size, size);
+
+            // Draw Heart Outline (White)
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(2, 0, 4, 2);
+            ctx.fillRect(10, 0, 4, 2);
+            ctx.fillRect(0, 2, 2, 4);
+            ctx.fillRect(14, 2, 2, 4);
+            ctx.fillRect(2, 6, 2, 2);
+            ctx.fillRect(12, 6, 2, 2);
+            ctx.fillRect(4, 8, 2, 2);
+            ctx.fillRect(10, 8, 2, 2);
+            ctx.fillRect(6, 10, 4, 2);
+            ctx.fillRect(6, 12, 4, 2); // Point
+
+            // Fill Heart based on state
+            ctx.fillStyle = '#FF0000'; // Red
+
+            if (frameX === 0) { // Full
+                ctx.fillRect(2, 2, 4, 4);
+                ctx.fillRect(10, 2, 4, 4);
+                ctx.fillRect(2, 6, 12, 2);
+                ctx.fillRect(4, 8, 8, 2);
+                ctx.fillRect(6, 10, 4, 2);
+            } else if (frameX === 1) { // Half
+                ctx.fillRect(2, 2, 4, 4);
+                ctx.fillRect(2, 6, 6, 2);
+                ctx.fillRect(4, 8, 4, 2);
+                ctx.fillRect(6, 10, 2, 2);
+            }
+
+            ctx.restore();
         }
 
         // Draw Rupees
