@@ -1,4 +1,5 @@
 import { Camera } from './Camera';
+import { ArrowSprite } from './sprites/ArrowSprite';
 
 export class Arrow {
     public x: number;
@@ -10,6 +11,7 @@ export class Arrow {
     public width: number = 16;
     public height: number = 4; // Horizontal arrow height
     public isSilver: boolean = false;
+    private sprite: ArrowSprite;
 
     constructor(x: number, y: number, direction: { x: number, y: number }, isSilver: boolean = false) {
         this.x = x;
@@ -26,6 +28,7 @@ export class Arrow {
             this.width = 4;
             this.height = 16;
         }
+        this.sprite = new ArrowSprite();
     }
 
     public get rotation(): number {
@@ -45,23 +48,14 @@ export class Arrow {
     }
 
     public render(ctx: CanvasRenderingContext2D, camera: Camera) {
-        const screenX = Math.floor(this.x - camera.x);
-        const screenY = Math.floor(this.y - camera.y);
-
-        ctx.fillStyle = this.isSilver ? '#C0C0C0' : '#FFFF00'; // Silver or Yellow
-        ctx.fillRect(screenX, screenY, this.width, this.height);
-
-        // Add a "head" to the arrow
-        ctx.fillStyle = '#FFFFFF';
-        if (this.direction.x > 0) {
-            ctx.fillRect(screenX + this.width - 2, screenY, 2, this.height);
-        } else if (this.direction.x < 0) {
-            ctx.fillRect(screenX, screenY, 2, this.height);
-        } else if (this.direction.y > 0) {
-            ctx.fillRect(screenX, screenY + this.height - 2, this.width, 2);
-        } else if (this.direction.y < 0) {
-            ctx.fillRect(screenX, screenY, this.width, 2);
-        }
+        this.sprite.draw(
+            ctx,
+            0, 0, 0, 0,
+            this.width,
+            this.height,
+            this,
+            { x: camera.x, y: camera.y }
+        );
     }
 
     public getBounds() {

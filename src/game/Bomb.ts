@@ -1,4 +1,5 @@
 import { Camera } from './Camera';
+import { BombSprite } from './sprites/BombSprite';
 
 export const BombState = {
     Fuse: 0,
@@ -18,10 +19,12 @@ export class Bomb {
     private timer: number = 0;
     private static FUSE_TIME = 1.5;
     private static EXPLOSION_TIME = 0.5;
+    private sprite: BombSprite;
 
     constructor(x: number, y: number) {
         this.x = x;
         this.y = y;
+        this.sprite = new BombSprite();
     }
 
     public update(dt: number) {
@@ -45,26 +48,14 @@ export class Bomb {
     }
 
     public render(ctx: CanvasRenderingContext2D, camera: Camera) {
-        const screenX = Math.floor(this.x - camera.x);
-        const screenY = Math.floor(this.y - camera.y);
-
-        if (this.state === BombState.Fuse) {
-            // Draw Bomb (Blue Circle for now)
-            ctx.fillStyle = 'blue';
-            ctx.beginPath();
-            ctx.arc(screenX + 8, screenY + 8, 6, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Fuse flicker
-            if (Math.floor(this.timer * 10) % 2 === 0) {
-                ctx.fillStyle = 'white';
-                ctx.fillRect(screenX + 8, screenY, 2, 4);
-            }
-        } else if (this.state === BombState.Exploding) {
-            // Draw Explosion (Red/Orange flicker)
-            ctx.fillStyle = Math.floor(this.timer * 20) % 2 === 0 ? 'red' : 'orange';
-            ctx.fillRect(screenX, screenY, this.width, this.height);
-        }
+        this.sprite.draw(
+            ctx,
+            0, 0, 0, 0,
+            this.width,
+            this.height,
+            this,
+            { x: camera.x, y: camera.y }
+        );
     }
 
     public getBounds() {

@@ -313,6 +313,9 @@ export class Game {
         } else if (p.y < c.y) {
             dir = { x: 0, y: -1 };
             transition = true;
+        } else if (p.x + p.width > c.x + c.width) {
+            dir = { x: 1, y: 0 };
+            transition = true;
         } else if (p.y + p.height > c.y + c.height) {
             dir = { x: 0, y: 1 };
             transition = true;

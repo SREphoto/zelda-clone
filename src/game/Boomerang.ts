@@ -5,6 +5,8 @@ export interface BoomerangOwner {
     height: number;
 }
 
+import { BoomerangSprite } from './sprites/BoomerangSprite';
+
 export class Boomerang {
     public x: number;
     public y: number;
@@ -19,12 +21,14 @@ export class Boomerang {
     public damage: number = 0; // Stuns instead of damage
     public owner: BoomerangOwner;
     public rotation: number = 0;
+    private sprite: BoomerangSprite;
 
     constructor(x: number, y: number, direction: { x: number, y: number }, owner: BoomerangOwner) {
         this.x = x;
         this.y = y;
         this.direction = direction;
         this.owner = owner;
+        this.sprite = new BoomerangSprite();
     }
 
     public update(dt: number) {
@@ -56,13 +60,14 @@ export class Boomerang {
     }
 
     public render(ctx: CanvasRenderingContext2D, camera: { x: number, y: number }) {
-        const screenX = Math.floor(this.x - camera.x);
-        const screenY = Math.floor(this.y - camera.y);
-
-        ctx.fillStyle = '#FFD700'; // Gold
-        ctx.beginPath();
-        ctx.arc(screenX + 4, screenY + 4, 4, 0, Math.PI * 2);
-        ctx.fill();
+        this.sprite.draw(
+            ctx,
+            0, 0, 0, 0,
+            this.width,
+            this.height,
+            this,
+            camera
+        );
     }
 
     public getBounds() {

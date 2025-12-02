@@ -75,42 +75,66 @@ export class Tilemap {
             for (let x = startCol; x <= endCol; x++) {
                 if (y >= 0 && y < this.tiles.length && x >= 0 && x < this.tiles[0].length) {
                     const tile = this.tiles[y][x];
-                    const tileX = (x * this.tileSize) - camera.x;
-                    const tileY = (y * this.tileSize) - camera.y;
+                    const tileX = Math.floor((x * this.tileSize) - camera.x);
+                    const tileY = Math.floor((y * this.tileSize) - camera.y);
 
                     // Draw Floor Background first
                     if (tile === TILE_SAND) {
                         ctx.fillStyle = '#EEDDAA'; // Sand
+                        ctx.fillRect(tileX, tileY, this.tileSize, this.tileSize);
+                        // Sand texture
+                        ctx.fillStyle = '#DDBB88';
+                        if ((x + y) % 2 === 0) ctx.fillRect(tileX + 8, tileY + 8, 2, 2);
+                        if ((x * y) % 3 === 0) ctx.fillRect(tileX + 20, tileY + 20, 2, 2);
                     } else {
                         ctx.fillStyle = '#eebb88'; // Standard Floor
+                        ctx.fillRect(tileX, tileY, this.tileSize, this.tileSize);
+                        // Dirt texture
+                        ctx.fillStyle = '#cc9966';
+                        if ((x + y) % 3 === 0) ctx.fillRect(tileX + 10, tileY + 10, 4, 4);
+                        if ((x * y) % 5 === 0) ctx.fillRect(tileX + 22, tileY + 5, 2, 2);
                     }
-                    ctx.fillRect(Math.floor(tileX), Math.floor(tileY), this.tileSize, this.tileSize);
 
                     if (tile === TILE_WALL) {
                         ctx.fillStyle = '#555'; // Wall
-                        ctx.fillRect(Math.floor(tileX), Math.floor(tileY), this.tileSize, this.tileSize);
+                        ctx.fillRect(tileX, tileY, this.tileSize, this.tileSize);
+
+                        // Brick pattern
+                        ctx.fillStyle = '#444';
+                        ctx.fillRect(tileX + 2, tileY + 2, 12, 12);
+                        ctx.fillRect(tileX + 18, tileY + 2, 12, 12);
+                        ctx.fillRect(tileX + 2, tileY + 18, 12, 12);
+                        ctx.fillRect(tileX + 18, tileY + 18, 12, 12);
 
                         // Bevel effect
-                        ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                        ctx.fillRect(Math.floor(tileX), Math.floor(tileY), this.tileSize, 4);
-                        ctx.fillRect(Math.floor(tileX), Math.floor(tileY), 4, this.tileSize);
-                        ctx.fillStyle = 'rgba(0,0,0,0.4)';
-                        ctx.fillRect(Math.floor(tileX + this.tileSize - 4), Math.floor(tileY), 4, this.tileSize);
-                        ctx.fillRect(Math.floor(tileX), Math.floor(tileY + this.tileSize - 4), this.tileSize, 4);
+                        ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                        ctx.fillRect(tileX, tileY, this.tileSize, 2);
+                        ctx.fillRect(tileX, tileY, 2, this.tileSize);
 
                     } else if (tile === TILE_WATER) {
                         ctx.fillStyle = '#0000AA'; // Water
-                        ctx.fillRect(Math.floor(tileX), Math.floor(tileY), this.tileSize, this.tileSize);
-                        // Ripple
+                        ctx.fillRect(tileX, tileY, this.tileSize, this.tileSize);
+                        // Wave pattern (animated)
                         ctx.fillStyle = '#4444FF';
-                        ctx.fillRect(Math.floor(tileX + 8), Math.floor(tileY + 8), 16, 4);
+                        const offset = Math.floor(Date.now() / 200) % 8;
+                        if ((x + y) % 2 === 0) {
+                            ctx.fillRect(tileX + 4 + offset, tileY + 8, 8, 2);
+                            ctx.fillRect(tileX + 16 - offset, tileY + 20, 8, 2);
+                        } else {
+                            ctx.fillRect(tileX + 8, tileY + 4 + offset, 8, 2);
+                        }
 
                     } else if (tile === TILE_BLOCK) {
                         ctx.fillStyle = '#008800'; // Block (Green)
-                        ctx.fillRect(Math.floor(tileX), Math.floor(tileY), this.tileSize, this.tileSize);
+                        ctx.fillRect(tileX, tileY, this.tileSize, this.tileSize);
                         // Detail
                         ctx.strokeStyle = '#004400';
-                        ctx.strokeRect(Math.floor(tileX + 4), Math.floor(tileY + 4), 24, 24);
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(tileX + 4, tileY + 4, 24, 24);
+                        ctx.beginPath();
+                        ctx.moveTo(tileX + 4, tileY + 4); ctx.lineTo(tileX + 28, tileY + 28);
+                        ctx.moveTo(tileX + 28, tileY + 4); ctx.lineTo(tileX + 4, tileY + 28);
+                        ctx.stroke();
 
                     } else if (tile === TILE_TREE) {
                         // Tree (Green Circle)
@@ -118,23 +142,39 @@ export class Tilemap {
                         ctx.beginPath();
                         ctx.arc(tileX + 16, tileY + 16, 14, 0, Math.PI * 2);
                         ctx.fill();
-                        ctx.fillStyle = '#004400'; // Shadow/Detail
+
+                        // Leaf texture
+                        ctx.fillStyle = '#008800';
                         ctx.beginPath();
-                        ctx.arc(tileX + 16, tileY + 16, 10, 0, Math.PI * 2);
+                        ctx.arc(tileX + 12, tileY + 12, 6, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(tileX + 20, tileY + 14, 5, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(tileX + 14, tileY + 20, 5, 0, Math.PI * 2);
                         ctx.fill();
 
                     } else if (tile === TILE_GRAVE) {
                         // Grave (Grey Stone)
                         ctx.fillStyle = '#777';
-                        ctx.fillRect(Math.floor(tileX + 8), Math.floor(tileY + 4), 16, 24);
-                        ctx.fillStyle = '#000'; // Cross
-                        ctx.fillRect(Math.floor(tileX + 14), Math.floor(tileY + 8), 4, 12);
-                        ctx.fillRect(Math.floor(tileX + 10), Math.floor(tileY + 12), 12, 4);
+                        ctx.fillRect(tileX + 8, tileY + 4, 16, 24);
+                        // Cross
+                        ctx.fillStyle = '#333';
+                        ctx.fillRect(tileX + 14, tileY + 8, 4, 12);
+                        ctx.fillRect(tileX + 10, tileY + 12, 12, 4);
+                        // Shadow
+                        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                        ctx.fillRect(tileX + 24, tileY + 4, 2, 24);
 
                     } else if (tile === TILE_STAIRS) {
                         // Stairs (Black Square)
                         ctx.fillStyle = '#000';
-                        ctx.fillRect(Math.floor(tileX + 8), Math.floor(tileY + 8), 16, 16);
+                        ctx.fillRect(tileX + 8, tileY + 8, 16, 16);
+                        // Steps
+                        ctx.fillStyle = '#333';
+                        ctx.fillRect(tileX + 8, tileY + 12, 16, 2);
+                        ctx.fillRect(tileX + 8, tileY + 18, 16, 2);
                     }
                 }
             }

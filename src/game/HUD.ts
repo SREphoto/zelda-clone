@@ -1,12 +1,7 @@
-import { Sprite } from './Sprite';
 import { Player } from './Player';
-import heartsSrc from '../assets/hearts.png';
 
 export class HUD {
-    private hearts: Sprite;
-
     constructor() {
-        this.hearts = new Sprite(heartsSrc);
     }
 
     public render(ctx: CanvasRenderingContext2D, player: Player, rupees: number, bombs: number) {
@@ -16,7 +11,6 @@ export class HUD {
 
         // Draw Hearts
         const heartWidth = 8; // Source size
-        const heartHeight = 8;
         const scale = 2;
         const spacing = 8;
 
@@ -77,14 +71,44 @@ export class HUD {
         }
 
         // Draw Rupees
+        const rx = 100;
+        const ry = 8;
+        // Icon
+        ctx.fillStyle = '#DAA520'; // Gold
+        ctx.beginPath();
+        ctx.moveTo(rx + 6, ry);
+        ctx.lineTo(rx + 12, ry + 8);
+        ctx.lineTo(rx + 6, ry + 16);
+        ctx.lineTo(rx, ry + 8);
+        ctx.fill();
+        // Text
         ctx.fillStyle = '#FFFFFF';
         ctx.font = '16px monospace';
-        ctx.fillText(`R: ${rupees}`, 100, 24);
+        ctx.fillText(`X${rupees}`, rx + 16, 24);
 
         // Draw Bombs
-        ctx.fillText(`B: ${bombs}`, 200, 24);
+        const bx = 180;
+        // Icon
+        ctx.fillStyle = '#444';
+        ctx.beginPath();
+        ctx.arc(bx + 8, ry + 8, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FFA500'; // Fuse
+        ctx.fillRect(bx + 7, ry - 2, 2, 4);
+        // Text
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText(`X${bombs}`, bx + 18, 24);
 
         // Draw Keys
-        ctx.fillText(`K: ${player.keys}`, 280, 24);
+        const kx = 260;
+        // Icon
+        ctx.fillStyle = '#DAA520';
+        ctx.fillRect(kx + 4, ry, 4, 10); // Shaft
+        ctx.fillRect(kx + 2, ry, 8, 4); // Handle
+        ctx.fillRect(kx + 4, ry + 10, 6, 2); // Teeth
+        ctx.fillRect(kx + 4, ry + 13, 4, 2);
+        // Text
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText(`X${player.keys}`, kx + 16, 24);
     }
 }

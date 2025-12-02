@@ -26,42 +26,69 @@ export class TitleScreen {
         ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, width, height);
 
-        // Title
-        ctx.fillStyle = '#FFD700'; // Gold
-        ctx.font = 'bold 48px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('THE LEGEND OF', width / 2, height / 3);
+        // Draw Triforce Logo
+        const tx = width / 2;
+        const ty = height / 3 - 80;
+        const size = 50;
 
+        ctx.fillStyle = '#FFD700'; // Gold
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(tx - size, ty + size * 1.732);
+        ctx.lineTo(tx + size, ty + size * 1.732);
+        ctx.fill();
+
+        // Inner triangle (black) to make it look like 3 triangles
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.moveTo(tx, ty + size * 1.732);
+        ctx.lineTo(tx - size / 2, ty + size * 1.732 / 2);
+        ctx.lineTo(tx + size / 2, ty + size * 1.732 / 2);
+        ctx.fill();
+
+        // Title Text
+        ctx.textAlign = 'center';
+
+        // "THE LEGEND OF"
+        ctx.font = 'bold 32px monospace';
+        ctx.fillStyle = '#8B0000'; // Shadow
+        ctx.fillText('THE LEGEND OF', width / 2 + 2, height / 2 - 48);
+        ctx.fillStyle = '#FF4444'; // Red
+        ctx.fillText('THE LEGEND OF', width / 2, height / 2 - 50);
+
+        // "ZELDA"
+        ctx.font = 'bold 80px monospace';
+        ctx.fillStyle = '#8B0000'; // Shadow
+        ctx.fillText('ZELDA', width / 2 + 4, height / 2 + 34);
         ctx.fillStyle = '#FF0000'; // Red
-        ctx.font = 'bold 64px monospace';
-        ctx.fillText('ZELDA', width / 2, height / 3 + 70);
+        ctx.fillText('ZELDA', width / 2, height / 2 + 30);
 
         // Subtitle
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = '20px monospace';
-        ctx.fillText('A Zelda-Inspired Adventure', width / 2, height / 3 + 120);
+        ctx.fillStyle = '#AAAAAA';
+        ctx.font = '16px monospace';
+        ctx.fillText('A Zelda-Inspired Adventure', width / 2, height / 2 + 70);
 
         // Press Start (blinking)
         if (this.showPressStart) {
-            ctx.fillStyle = '#00FF00';
+            ctx.fillStyle = '#FFFFFF';
             ctx.font = 'bold 24px monospace';
-            ctx.fillText('PRESS SPACE TO START', width / 2, height / 2 + 100);
+            ctx.fillText('PRESS SPACE TO START', width / 2, height / 2 + 120);
         }
 
         // Controls
-        ctx.fillStyle = '#AAAAAA';
+        ctx.fillStyle = '#888888';
         ctx.font = '14px monospace';
         ctx.textAlign = 'left';
         const controlsX = width / 2 - 150;
-        const controlsY = height - 150;
+        const controlsY = height - 140;
 
         ctx.fillText('CONTROLS:', controlsX, controlsY);
-        ctx.fillText('Arrow Keys / WASD - Move', controlsX, controlsY + 25);
-        ctx.fillText('Space - Attack', controlsX, controlsY + 50);
-        ctx.fillText('Z - Place Bomb', controlsX, controlsY + 75);
-        ctx.fillText('X - Shoot Arrow', controlsX, controlsY + 100);
-        ctx.fillText('B - Throw Boomerang', controlsX, controlsY + 125);
-        ctx.fillText('M - View Map', controlsX, controlsY + 150);
+        ctx.fillText('Arrow Keys / WASD - Move', controlsX, controlsY + 20);
+        ctx.fillText('Space - Attack', controlsX, controlsY + 40);
+        ctx.fillText('Z - Place Bomb', controlsX, controlsY + 60);
+        ctx.fillText('X - Shoot Arrow', controlsX, controlsY + 80);
+        ctx.fillText('B - Throw Boomerang', controlsX, controlsY + 100);
+        ctx.fillText('M - View Map', controlsX, controlsY + 120);
     }
 }
 

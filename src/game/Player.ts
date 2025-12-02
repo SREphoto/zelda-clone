@@ -1,9 +1,8 @@
 import { Input } from './Input';
 import { Tilemap } from './Tilemap';
 import { Camera } from './Camera';
-import { Sprite } from './Sprite';
+import { PlayerSprite } from './sprites/PlayerSprite';
 import { Animation } from './Animation';
-import playerSrc from '../assets/player.png';
 
 export class Player {
     public x: number;
@@ -46,7 +45,7 @@ export class Player {
     private knockbackVelocity: { x: number, y: number } = { x: 0, y: 0 };
     public swordDisabledTimer: number = 0;
 
-    private sprite: Sprite;
+    private sprite: PlayerSprite;
     private animations: { [key: string]: Animation };
     private currentAnimation: Animation;
     private onHealthChange: (health: number) => void;
@@ -56,7 +55,7 @@ export class Player {
         this.y = y;
         this.onHealthChange = onHealthChange;
 
-        this.sprite = new Sprite(playerSrc);
+        this.sprite = new PlayerSprite();
 
         // 4 frames per row, 0.15s per frame
         this.animations = {
@@ -99,11 +98,6 @@ export class Player {
             return; // Don't move while attacking
         }
 
-        if (input.isDown('Space') && this.swordDisabledTimer <= 0) {
-            this.attack();
-            return;
-        }
-
         let dx = 0;
         let dy = 0;
         let moving = false;
@@ -113,52 +107,31 @@ export class Player {
         if (input.isDown('ArrowLeft') || input.isDown('KeyA')) { dx -= 1; moving = true; this.direction = 'left'; }
         if (input.isDown('ArrowRight') || input.isDown('KeyD')) { dx += 1; moving = true; this.direction = 'right'; }
 
-        // Normalize diagonal movement
-        if (dx !== 0 && dy !== 0) {
-            const length = Math.sqrt(dx * dx + dy * dy);
-            dx /= length;
-            dy /= length;
+        // Attack Input
+        if (input.isPressed('Space') && this.swordDisabledTimer <= 0) {
+            this.attack();
+            return;
         }
 
-        this.move(dx * this.speed * dt, 0, tilemap);
-        this.move(0, dy * this.speed * dt, tilemap);
+        // Normalize diagonal movement
+        if (dx !== 0 && dy !== 0) {
+            const len = Math.sqrt(dx * dx + dy * dy);
+            dx /= len;
+            dy /= len;
+        }
+
+        this.move(dx * this.speed * dt, dy * this.speed * dt, tilemap);
 
         // Update Animation
         if (moving) {
             this.currentAnimation = this.animations[this.direction];
             this.currentAnimation.update(dt);
         } else {
-            this.currentAnimation = this.animations[`idle-${this.direction}`];
-            this.currentAnimation.reset();
-        }
-    }
-
-    public takeDamage(amount: number, sourceX: number, sourceY: number) {
-        if (this.invulnerabilityTimer > 0) return;
-
-        // Apply defense ring reduction
-        let damageReduction = 0;
-        if (this.defenseRing === 1) damageReduction = 0.25; // Blue ring - 25% reduction
-        if (this.defenseRing === 2) damageReduction = 0.5; // Red ring - 50% reduction
-
-        const finalDamage = amount * (1 - damageReduction);
-
-        this.health -= finalDamage;
-        this.invulnerabilityTimer = Player.INVULNERABILITY_DURATION;
-        this.onHealthChange(this.health);
-        console.log('Player Hit! Health:', this.health);
-
-        // Calculate Knockback Direction
-        const dx = this.x - sourceX;
-        const dy = this.y - sourceY;
-        const length = Math.sqrt(dx * dx + dy * dy);
-
-        if (length > 0) {
-            this.knockbackVelocity = {
-                x: (dx / length) * 400,
-                y: (dy / length) * 400
-            };
-            this.knockbackTimer = 0.2;
+            // Idle
+            if (this.direction === 'up') this.currentAnimation = this.animations['idle-up'];
+            else if (this.direction === 'down') this.currentAnimation = this.animations['idle-down'];
+            else if (this.direction === 'left') this.currentAnimation = this.animations['idle-left'];
+            else if (this.direction === 'right') this.currentAnimation = this.animations['idle-right'];
         }
     }
 
@@ -166,69 +139,124 @@ export class Player {
         const newX = this.x + dx;
         const newY = this.y + dy;
 
-        // Check collision at 4 corners
-        const points = [
-            { x: newX, y: newY },
-            { x: newX + this.width, y: newY },
-            { x: newX, y: newY + this.height },
-            { x: newX + this.width, y: newY + this.height },
-        ];
-
-        for (const point of points) {
-            if (tilemap.isSolid(point.x, point.y)) {
-                return; // Collision detected, don't move
-            }
+        // Check collisions
+        if (!tilemap.isSolid(newX, this.y) && !tilemap.isSolid(newX + this.width, this.y) &&
+            !tilemap.isSolid(newX, this.y + this.height) && !tilemap.isSolid(newX + this.width, this.y + this.height)) {
+            this.x = newX;
         }
 
-        this.x = newX;
-        this.y = newY;
+        if (!tilemap.isSolid(this.x, newY) && !tilemap.isSolid(this.x + this.width, newY) &&
+            !tilemap.isSolid(this.x, newY + this.height) && !tilemap.isSolid(this.x + this.width, newY + this.height)) {
+            this.y = newY;
+        }
+
+        // Update direction
+        if (Math.abs(dx) > Math.abs(dy)) {
+            if (dx > 0) this.direction = 'right';
+            else if (dx < 0) this.direction = 'left';
+        } else {
+            if (dy > 0) this.direction = 'down';
+            else if (dy < 0) this.direction = 'up';
+        }
+    }
+
+    public takeDamage(amount: number, sourceX: number, sourceY: number) {
+        if (this.invulnerabilityTimer > 0) return;
+
+        // Reduce damage based on ring
+        let damage = amount;
+        if (this.defenseRing === 1) damage = Math.ceil(amount / 2); // Blue Ring: 1/2 damage
+        if (this.defenseRing === 2) damage = Math.ceil(amount / 4); // Red Ring: 1/4 damage
+
+        this.health -= damage;
+        if (this.health < 0) this.health = 0;
+        this.onHealthChange(this.health);
+
+        this.invulnerabilityTimer = Player.INVULNERABILITY_DURATION;
+
+        // Knockback
+        const dx = (this.x + this.width / 2) - sourceX;
+        const dy = (this.y + this.height / 2) - sourceY;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len > 0) {
+            this.knockbackVelocity = { x: (dx / len) * 150, y: (dy / len) * 150 };
+            this.knockbackTimer = 0.2;
+        }
+
+        console.log(`Player took ${damage} damage! Health: ${this.health}`);
     }
 
     public render(ctx: CanvasRenderingContext2D, camera: Camera) {
         const screenX = Math.floor(this.x - camera.x);
         const screenY = Math.floor(this.y - camera.y);
 
-        // Draw Sprite
-        const frame = this.currentAnimation.getCurrentFrame();
-        const frameX = frame % 4;
-        const frameY = Math.floor(frame / 4);
-
-        // Flash if invulnerable
-        if (this.invulnerabilityTimer > 0 && Math.floor(this.invulnerabilityTimer * 10) % 2 === 0) {
-            ctx.globalAlpha = 0.5;
+        // Invulnerability flashing
+        if (this.invulnerabilityTimer > 0) {
+            if (Math.floor(Date.now() / 50) % 2 === 0) return;
         }
 
         this.sprite.draw(
             ctx,
-            screenX - 2,
-            screenY - 4,
-            frameX,
-            frameY,
-            256,
-            256,
-            32,
-            32
+            screenX,
+            screenY,
+            this.width,
+            this.height,
+            this.direction,
+            this.isAttacking,
+            this.swordLevel,
+            this.shieldLevel,
+            this.defenseRing
         );
-
-        ctx.globalAlpha = 1.0;
 
         // Draw Sword if attacking
         if (this.isAttacking) {
             // Sword color based on level
             const swordColors = ['#C0C0C0', '#FFFFFF', '#4169E1', '#FFD700']; // Silver, White, Blue, Gold
-            ctx.fillStyle = swordColors[this.swordLevel - 1] || '#C0C0C0';
+            const color = swordColors[this.swordLevel - 1] || '#C0C0C0';
 
             let swordX = screenX + this.width / 2;
             let swordY = screenY + this.height / 2;
             let swordW = 20;
             let swordH = 20;
 
-            if (this.direction === 'down') { swordY += 20; swordW = 10; swordH = 30; }
-            if (this.direction === 'up') { swordY -= 30; swordW = 10; swordH = 30; }
-            if (this.direction === 'left') { swordX -= 30; swordW = 30; swordH = 10; }
-            if (this.direction === 'right') { swordX += 20; swordW = 30; swordH = 10; }
+            if (this.direction === 'down') { swordY += 20; swordW = 10; swordH = 28; }
+            if (this.direction === 'up') { swordY -= 28; swordW = 10; swordH = 28; }
+            if (this.direction === 'left') { swordX -= 28; swordW = 28; swordH = 10; }
+            if (this.direction === 'right') { swordX += 20; swordW = 28; swordH = 10; }
 
-            ctx.fillRect(swordX, swordY, swordW, swordH);
+            // Draw Detailed Sword
+            if (this.direction === 'up' || this.direction === 'down') {
+                // Vertical Sword
+                const bladeW = 6;
+                const bx = swordX + swordW / 2 - bladeW / 2;
+
+                // Blade
+                ctx.fillStyle = color;
+                ctx.fillRect(bx, swordY, bladeW, swordH);
+
+                // Hilt (Guard)
+                ctx.fillStyle = '#DAA520'; // Gold
+                const hiltY = this.direction === 'down' ? swordY : swordY + swordH - 6;
+                ctx.fillRect(bx - 4, hiltY, bladeW + 8, 6);
+
+                // Handle (Brown)
+                ctx.fillStyle = '#8B4513';
+                // const handleY = this.direction === 'down' ? swordY - 4 : swordY + swordH;
+                // ctx.fillRect(bx + 1, handleY, 4, 4); // Hidden by hand usually
+            } else {
+                // Horizontal Sword
+                const bladeH = 6;
+                const by = swordY + swordH / 2 - bladeH / 2;
+
+                // Blade
+                ctx.fillStyle = color;
+                ctx.fillRect(swordX, by, swordW, bladeH);
+
+                // Hilt (Guard)
+                ctx.fillStyle = '#DAA520';
+                const hiltX = this.direction === 'right' ? swordX : swordX + swordW - 6;
+                ctx.fillRect(hiltX, by - 4, 6, bladeH + 8);
+            }
         }
     }
 

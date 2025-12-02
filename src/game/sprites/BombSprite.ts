@@ -21,6 +21,24 @@ export class BombSprite {
         const sx = Math.floor(bomb.x - camera.x);
         const sy = Math.floor(bomb.y - camera.y);
 
+        // Check if exploding (BombState.Exploding = 1)
+        if (bomb.state === 1) {
+            // Explosion
+            ctx.fillStyle = Math.floor(Date.now() / 50) % 2 === 0 ? '#FF0000' : '#FFA500';
+
+            // Draw expanding cloud
+            ctx.beginPath();
+            ctx.arc(sx + width / 2, sy + height / 2, width / 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Inner white part
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(sx + width / 2, sy + height / 2, width / 3, 0, Math.PI * 2);
+            ctx.fill();
+            return;
+        }
+
         // Bomb body (black circle)
         ctx.fillStyle = '#222';
         ctx.beginPath();

@@ -135,6 +135,10 @@ export class EnemySprite {
             case EnemyType.Ganon:
                 this.drawGanon(ctx, width, height, enemy.state === EnemyState.Invisible);
                 break;
+            case EnemyType.WizzrobeRed:
+            case EnemyType.WizzrobeBlue:
+                this.drawWizzrobe(ctx, width, height, enemy.type === EnemyType.WizzrobeRed ? '#FF4500' : '#00FFFF', enemy.state, enemy.moveTimer, enemy.direction);
+                break;
             default:
                 // Fallback
                 ctx.fillStyle = '#FF00FF';
@@ -480,6 +484,46 @@ export class EnemySprite {
         ctx.beginPath();
         ctx.arc(w / 2, h / 2 + 2, 6, 0, Math.PI * 2);
         ctx.fill();
+    }
+
+    private drawWizzrobe(ctx: CanvasRenderingContext2D, w: number, h: number, color: string, state: number, timer: number, dir: { x: number, y: number }) {
+        // Teleportation Alpha
+        if (state === EnemyState.TeleportIn) {
+            ctx.globalAlpha = Math.max(0, Math.min(1, 1.0 - timer));
+        } else if (state === EnemyState.TeleportOut) {
+            ctx.globalAlpha = Math.max(0, Math.min(1, timer));
+        }
+
+        // Robe
+        ctx.fillStyle = color;
+        ctx.fillRect(4, 4, w - 8, h - 4);
+
+        // Hat/Hood
+        ctx.beginPath();
+        ctx.moveTo(4, 4);
+        ctx.lineTo(w / 2, -4);
+        ctx.lineTo(w - 4, 4);
+        ctx.fill();
+
+        // Face (Black void)
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(8, 6, w - 16, 6);
+
+        // Eyes (Glowing)
+        ctx.fillStyle = '#FFFF00';
+        if (dir.x < 0) ctx.fillRect(8, 8, 2, 2);
+        else if (dir.x > 0) ctx.fillRect(w - 10, 8, 2, 2);
+        else {
+            ctx.fillRect(8, 8, 2, 2);
+            ctx.fillRect(w - 10, 8, 2, 2);
+        }
+
+        // Staff
+        ctx.fillStyle = '#8B4513';
+        if (dir.x < 0) ctx.fillRect(0, 4, 2, h - 4);
+        else ctx.fillRect(w - 2, 4, 2, h - 4);
+
+        ctx.globalAlpha = 1.0; // Reset
     }
 
     // --- Bosses ---

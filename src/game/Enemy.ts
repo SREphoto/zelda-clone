@@ -79,7 +79,7 @@ export class Enemy {
     private sprite: EnemySprite;
     public direction: { x: number, y: number } = { x: 0, y: 1 };
 
-    private moveTimer: number = 0;
+    public moveTimer: number = 0;
 
     // Immunities (Bitflags)
     // Bit 0: Sword, Bit 1: Boomerang, Bit 2: Arrow, Bit 3: Bomb, Bit 4: Rod, Bit 5: Fire
@@ -1374,98 +1374,12 @@ export class Enemy {
     }
 
     public render(ctx: CanvasRenderingContext2D, camera: Camera) {
-        const screenX = Math.floor(this.x - camera.x);
-        const screenY = Math.floor(this.y - camera.y - this.z);
-
+        // Flashing effect (damage/stun)
         if (this.invulnerabilityTimer > 0 && Math.floor(this.invulnerabilityTimer * 20) % 2 === 0) {
             ctx.globalAlpha = 0.5;
         }
 
-        if (this.type === EnemyType.OctorokBlue) {
-            ctx.filter = 'hue-rotate(180deg)';
-        } else if (this.type === EnemyType.TektiteRed) {
-            ctx.filter = 'sepia(1) saturate(5) hue-rotate(-50deg)';
-        } else if (this.type === EnemyType.TektiteBlue) {
-            ctx.filter = 'sepia(1) saturate(5) hue-rotate(180deg)';
-        } else if (this.type === EnemyType.Dodongo) {
-            ctx.filter = 'sepia(1) saturate(2) hue-rotate(50deg)'; // Greenish/Yellow
-        } else if (this.type === EnemyType.Gohma) {
-            ctx.filter = 'invert(1)'; // White/Black look
-        } else if (this.type === EnemyType.Stalfos) {
-            ctx.filter = 'grayscale(100%) brightness(1.5)'; // Skeleton look
-        } else if (this.type === EnemyType.Keese) {
-            ctx.filter = 'grayscale(100%) brightness(0.5)'; // Dark/Black
-        } else if (this.type === EnemyType.Zol || this.type === EnemyType.Gel) {
-            ctx.filter = 'sepia(1) saturate(3) hue-rotate(90deg)'; // Green Slime
-        } else if (this.type === EnemyType.WizzrobeRed) {
-            ctx.filter = 'hue-rotate(-50deg) saturate(3)'; // Red/Orange
-            if (this.state === EnemyState.TeleportIn) {
-                ctx.globalAlpha = Math.max(0, Math.min(1, 1.0 - this.moveTimer)); // Fade In
-            } else if (this.state === EnemyState.TeleportOut) {
-                ctx.globalAlpha = Math.max(0, Math.min(1, this.moveTimer)); // Fade Out
-            }
-        } else if (this.type === EnemyType.WizzrobeBlue) {
-            ctx.filter = 'hue-rotate(180deg) saturate(2)'; // Blue
-        } else if (this.type === EnemyType.Aquamentus) {
-            ctx.filter = 'hue-rotate(90deg) saturate(3)'; // Green Dragon
-        } else if (this.type === EnemyType.Ganon) {
-            if (this.state === EnemyState.Invisible) {
-                ctx.globalAlpha = 0; // Invisible
-            } else {
-                ctx.globalAlpha = 1;
-            }
-        } else if (this.type === EnemyType.Rope) {
-            ctx.filter = 'sepia(1) saturate(2) hue-rotate(45deg)'; // Brownish
-        } else if (this.type === EnemyType.Armos) {
-            if (this.state === EnemyState.Idle) {
-                ctx.filter = 'grayscale(100%) brightness(0.8)'; // Stone
-            } else {
-                ctx.filter = 'grayscale(100%) brightness(1.2)'; // Active Stone
-            }
-        } else if (this.type === EnemyType.Ghini) {
-            ctx.filter = 'opacity(0.7) hue-rotate(180deg) brightness(1.5)'; // Ghostly
-        } else if (this.type === EnemyType.Zola) {
-            ctx.filter = 'hue-rotate(90deg) saturate(2)'; // Greenish/Blue
-        } else if (this.type === EnemyType.Wallmaster) {
-            ctx.filter = 'hue-rotate(-45deg) saturate(2)'; // Reddish
-        } else if (this.type === EnemyType.PolsVoice) {
-            ctx.filter = 'hue-rotate(45deg) brightness(1.5)'; // Yellowish
-        } else if (this.type === EnemyType.LeeverRed || this.type === EnemyType.LeeverBlue) {
-            if (this.state === EnemyState.Idle) {
-                ctx.globalAlpha = 0; // Buried
-            } else {
-                ctx.globalAlpha = 1;
-            }
-        } else if (this.type === EnemyType.Peahat) {
-            if (this.state === EnemyState.Flying) {
-                // Spin effect?
-                // For now just normal
-            }
-        } else if (this.type === EnemyType.GoriyaRed) {
-            ctx.filter = 'hue-rotate(-45deg) saturate(2)'; // Red
-        } else if (this.type === EnemyType.GoriyaBlue) {
-            ctx.filter = 'hue-rotate(180deg) saturate(2)'; // Blue
-        } else if (this.type === EnemyType.LikeLike) {
-            ctx.filter = 'hue-rotate(45deg) brightness(0.8) saturate(3)'; // Orange/Brown
-        } else if (this.type === EnemyType.Gibdo) {
-            ctx.filter = 'sepia(1) brightness(1.2)'; // Mummy
-        } else if (this.type === EnemyType.Bubble) {
-            // Flashing
-            if (Math.floor(Date.now() / 100) % 2 === 0) {
-                ctx.filter = 'invert(1)';
-            } else {
-                ctx.filter = 'none';
-            }
-        } else if (this.type === EnemyType.Moldorm) {
-            ctx.filter = 'hue-rotate(60deg) saturate(3)'; // Yellow/Green
-        } else if (this.type === EnemyType.Manhandla) {
-            ctx.filter = 'hue-rotate(90deg) saturate(2)'; // Green
-        } else if (this.type === EnemyType.Gleeok) {
-            ctx.filter = 'hue-rotate(120deg) saturate(2)'; // Green
-        } else if (this.type === EnemyType.Digdogger) {
-            ctx.filter = 'hue-rotate(30deg) saturate(3)'; // Orange
-        }
-
+        // Delegate completely to EnemySprite
         this.sprite.draw(
             ctx,
             0, 0, 0, 0, // Frame args unused
@@ -1475,37 +1389,6 @@ export class Enemy {
             { x: camera.x, y: camera.y }
         );
 
-        // Render Gohma Eye
-        if (this.type === EnemyType.Gohma) {
-            const eyeX = screenX + this.width / 2;
-            const eyeY = screenY + this.height / 2;
-
-            ctx.fillStyle = '#000000'; // Eye socket
-            ctx.beginPath();
-            ctx.ellipse(eyeX, eyeY, 6, 4, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            if (this.state === EnemyState.EyeOpen) {
-                ctx.fillStyle = '#FF0000'; // Open Eye (Red)
-                ctx.beginPath();
-                ctx.ellipse(eyeX, eyeY, 4, 3, 0, 0, Math.PI * 2);
-                ctx.fill();
-            } else {
-                ctx.fillStyle = '#AAAAAA'; // Closed Eyelid
-                ctx.beginPath();
-                ctx.ellipse(eyeX, eyeY, 6, 1, 0, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        if (this.z > 0) {
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            ctx.beginPath();
-            ctx.ellipse(screenX + this.width / 2, screenY + this.height + this.z - 5, 6, 3, 0, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        ctx.filter = 'none';
         ctx.globalAlpha = 1.0;
     }
 }

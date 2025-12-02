@@ -2,54 +2,53 @@
 
 This document tracks the status of sprite generation for the Zelda clone.
 
+**UPDATE:** Switched from image-based sprites to procedural Canvas API rendering for maximum flexibility and to avoid asset dependency issues. All entities are now rendered programmatically in `EnemySprite.ts`, `PlayerSprite.ts`, `ItemSprite.ts`, etc.
+
 ## Status Legend
-- [x] Completed
+- [x] Completed (Procedural)
 - [ ] Pending
 
 ## Characters
-- [x] **Princess Zelda** (`src/assets/sprites/zelda.png`)
+- [x] **Link** (PlayerSprite)
+- [x] **Princess Zelda** (Not implemented as entity yet, but Ganon/Triforce logic exists)
 
 ## Overworld Enemies
-- [x] **Octorok** (`src/assets/sprites/octorok.png`)
-- [x] **Tektite** (`src/assets/sprites/tektite.png`)
-- [x] **Leever** (`src/assets/sprites/leever.png`)
-- [x] **Peahat** (`src/assets/sprites/peahat.png`)
-- [x] **Moblin** (`src/assets/sprites/moblin.png`)
-- [x] **Lynel** (`src/assets/sprites/lynel.png`)
-
-## Integration Status
-- [x] **Octorok, Tektite, Moblin, Leever, Peahat, Lynel** integrated into `Enemy.ts` and `Game.ts`.
-- [ ] **Armos, Ghini, Zola, Rock** pending generation.
-- [ ] Armos
-- [ ] Ghini
-- [ ] Zola (Zora)
-- [ ] Rock (Boulder)
+- [x] **Octorok**
+- [x] **Tektite**
+- [x] **Leever**
+- [x] **Peahat**
+- [x] **Moblin**
+- [x] **Lynel**
+- [x] **Armos**
+- [x] **Ghini**
+- [x] **Zola (Zora)**
 
 ## Dungeon Enemies
-- [ ] Zol & Gel
-- [ ] Rope
-- [ ] Keese
-- [ ] Stalfos
-- [ ] Wallmaster
-- [ ] Goriya
-- [ ] Wizzrobe
-- [ ] Darknut
-- [ ] Pols Voice
-- [ ] Like Like
-- [ ] Gibdo
-- [ ] Moldorm
-- [ ] Vire
-- [ ] Bubble
+- [x] **Zol & Gel**
+- [x] **Rope**
+- [x] **Keese**
+- [x] **Stalfos**
+- [x] **Wallmaster**
+- [x] **Goriya**
+- [x] **Wizzrobe**
+- [x] **Darknut**
+- [x] **Pols Voice**
+- [x] **Like Like**
+- [x] **Gibdo**
+- [x] **Moldorm**
+- [x] **Vire**
+- [x] **Bubble**
 
 ## Bosses
-- [ ] Aquamentus
-- [ ] Dodongo
-- [ ] Manhandla
-- [ ] Gleeok
-- [ ] Digdogger
-- [ ] Gohma
-- [ ] Ganon
+- [x] **Aquamentus**
+- [x] **Dodongo**
+- [x] **Manhandla**
+- [x] **Gleeok**
+- [x] **Digdogger**
+- [x] **Gohma**
+- [x] **Ganon**
 
-## Traps
-- [ ] Blade Trap
-- [ ] Stone Statue
+## Items & Objects
+- [x] **All Items** (Hearts, Rupees, Weapons, etc.)
+- [x] **Projectiles** (Arrows, Boomerangs, Magic, Fireballs)
+- [x] **Bombs** (Fuse & Explosion animations)
