@@ -28,7 +28,6 @@ export class ItemSprite {
         const itemsImg = resources.getImage('/assets/items.png');
         if (itemsImg) {
             let tx = -1;
-            let ty = 0;
             switch (itemType) {
                 // "Sword, Shield, Rupee (Green, Blue), Bomb, Bow, Arrow, Boomerang, Heart, Key, Map, Compass, Triforce Piece."
                 case ItemType.MagicalShield: tx = 1; break;
@@ -161,15 +160,5 @@ export class ItemSprite {
         ctx.fillRect(x + 3, y + 6, size - 6, 1);
     }
 
-    private drawRupee(ctx: CanvasRenderingContext2D, x: number, y: number) {
-        const size = 8;
-        // Diamond shape
-        ctx.beginPath();
-        ctx.moveTo(x + size / 2, y);
-        ctx.lineTo(x + size, y + size / 2);
-        ctx.lineTo(x + size / 2, y + size);
-        ctx.lineTo(x, y + size / 2);
-        ctx.closePath();
-        ctx.fill();
-    }
+
 }
