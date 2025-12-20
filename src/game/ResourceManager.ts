@@ -1,11 +1,12 @@
 export class ResourceManager {
     private images: Map<string, HTMLImageElement | HTMLCanvasElement> = new Map();
+    private baseUrl = import.meta.env.BASE_URL || '/';
     private toLoad: string[] = [
-        '/assets/tiles.png',
-        '/assets/link.png',
-        '/assets/enemies.png',
-        '/assets/bosses.png',
-        '/assets/items.png'
+        'assets/tiles.png',
+        'assets/link.png',
+        'assets/enemies.png',
+        'assets/bosses.png',
+        'assets/items.png'
     ];
     public loaded: boolean = false;
 
@@ -20,6 +21,7 @@ export class ResourceManager {
     private loadImage(src: string): Promise<HTMLImageElement | HTMLCanvasElement> {
         return new Promise((resolve) => {
             const img = new Image();
+            const fullPath = this.baseUrl + src;
             img.onload = () => {
                 // Process image to remove green background if it's Link or Tiles
                 if (src.includes('link.png') || src.includes('tiles.png')) {
@@ -32,10 +34,10 @@ export class ResourceManager {
                 }
             };
             img.onerror = (e) => {
-                console.error(`Failed to load image: ${src}`, e);
+                console.error(`Failed to load image: ${fullPath}`, e);
                 resolve(img);
             };
-            img.src = src;
+            img.src = fullPath;
         });
     }
 
