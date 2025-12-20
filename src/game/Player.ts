@@ -116,8 +116,17 @@ export class Player {
             console.log('🚶 Player MOVING!', 'Direction:', this.direction, 'dx:', dx, 'dy:', dy);
         }
 
-        // Attack Input
-        if (input.isPressed('Space') && this.swordDisabledTimer <= 0) {
+        // Attack Input - use isDown instead of isPressed to catch quick taps
+        const spaceDown = input.isDown('Space');
+        const swordEnabled = this.swordDisabledTimer <= 0;
+        const notAttacking = !this.isAttacking;
+
+        if (Math.random() < 0.1) { // Log occasionally to avoid spam
+            console.log('⚔️ Attack check - Space down:', spaceDown, 'Sword enabled:', swordEnabled, 'Not attacking:', notAttacking);
+        }
+
+        if (spaceDown && swordEnabled && notAttacking) {
+            console.log('✅ ATTACK CONDITIONS MET!');
             this.attack();
             return;
         }
@@ -221,64 +230,33 @@ export class Player {
 
         // Draw Sword AFTER (on top of player)
         if (this.isAttacking) {
-            console.log('Drawing sword! Direction:', this.direction, 'ScreenPos:', screenX, screenY);
+            console.log('🗡️ Drawing sword! Direction:', this.direction, 'ScreenPos:', screenX, screenY, 'Canvas:', ctx.canvas.width, 'x', ctx.canvas.height);
 
-            // Sword color based on level
-            const swordColors = ['#FF0000', '#FFFFFF', '#4169E1', '#FFD700']; // RED for visibility, White, Blue, Gold
-            const color = swordColors[this.swordLevel - 1] || '#FF0000';
+            // SUPER SIMPLE TEST - Just draw a GIANT magenta rectangle
+            let testX = screenX;
+            let testY = screenY;
 
-            let swordX = screenX + this.width / 2;
-            let swordY = screenY + this.height / 2;
-            let swordW = 24;
-            let swordH = 24;
+            if (this.direction === 'down') testY += 30;
+            if (this.direction === 'up') testY -= 30;
+            if (this.direction === 'left') testX -= 30;
+            if (this.direction === 'right') testX += 30;
 
-            if (this.direction === 'down') { swordY += 16; swordW = 12; swordH = 32; }
-            if (this.direction === 'up') { swordY -= 32; swordW = 12; swordH = 32; }
-            if (this.direction === 'left') { swordX -= 32; swordW = 32; swordH = 12; }
-            if (this.direction === 'right') { swordX += 16; swordW = 32; swordH = 12; }
+            // Save current state
+            ctx.save();
 
-            // Draw SUPER VISIBLE test rectangle
-            ctx.fillStyle = '#00FFFF'; // Cyan - very visible
-            ctx.fillRect(swordX, swordY, swordW, swordH);
+            // Draw HUGE visible rectangle
+            ctx.fillStyle = '#FF00FF'; // MAGENTA
+            ctx.fillRect(testX, testY, 50, 50);
 
-            // Draw Detailed Sword ON TOP
-            if (this.direction === 'up' || this.direction === 'down') {
-                // Vertical Sword
-                const bladeW = 10;
-                const bx = swordX + swordW / 2 - bladeW / 2;
+            // Also draw text to confirm it's rendering
+            ctx.fillStyle = '#FFFF00'; // YELLOW TEXT
+            ctx.font = '20px Arial';
+            ctx.fillText('SWORD!', testX, testY + 25);
 
-                // Blade - BRIGHT RED
-                ctx.fillStyle = color;
-                ctx.fillRect(bx, swordY, bladeW, swordH);
+            console.log('🎨 Drew sword rectangle at:', testX, testY);
 
-                // Hilt (Guard)
-                ctx.fillStyle = '#FFD700'; // Gold
-                const hiltY = this.direction === 'down' ? swordY : swordY + swordH - 10;
-                ctx.fillRect(bx - 8, hiltY, bladeW + 16, 10);
-
-                // Handle (Brown)
-                ctx.fillStyle = '#8B4513';
-                const handleY = this.direction === 'down' ? swordY - 8 : swordY + swordH;
-                ctx.fillRect(bx + 2, handleY, 6, 8);
-            } else {
-                // Horizontal Sword
-                const bladeH = 10;
-                const by = swordY + swordH / 2 - bladeH / 2;
-
-                // Blade - BRIGHT RED
-                ctx.fillStyle = color;
-                ctx.fillRect(swordX, by, swordW, bladeH);
-
-                // Hilt (Guard)
-                ctx.fillStyle = '#FFD700';
-                const hiltX = this.direction === 'right' ? swordX : swordX + swordW - 10;
-                ctx.fillRect(hiltX, by - 8, 10, bladeH + 16);
-
-                // Handle
-                ctx.fillStyle = '#8B4513';
-                const handleX = this.direction === 'right' ? swordX - 8 : swordX + swordW;
-                ctx.fillRect(handleX, by + 2, 8, 6);
-            }
+            // Restore state
+            ctx.restore();
         }
     }
 
