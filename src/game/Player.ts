@@ -73,6 +73,11 @@ export class Player {
     }
 
     public update(dt: number, input: Input, tilemap: Tilemap) {
+        // Debug log every 60 frames
+        if (Math.floor(Date.now() / 1000) % 1 === 0 && Math.floor(Date.now() % 1000) < 20) {
+            console.log('👤 Player.update() called');
+        }
+
         // Handle Invulnerability
         if (this.invulnerabilityTimer > 0) {
             this.invulnerabilityTimer -= dt;
@@ -106,6 +111,10 @@ export class Player {
         if (input.isDown('ArrowDown') || input.isDown('KeyS')) { dy += 1; moving = true; this.direction = 'down'; }
         if (input.isDown('ArrowLeft') || input.isDown('KeyA')) { dx -= 1; moving = true; this.direction = 'left'; }
         if (input.isDown('ArrowRight') || input.isDown('KeyD')) { dx += 1; moving = true; this.direction = 'right'; }
+
+        if (moving) {
+            console.log('🚶 Player MOVING!', 'Direction:', this.direction, 'dx:', dx, 'dy:', dy);
+        }
 
         // Attack Input
         if (input.isPressed('Space') && this.swordDisabledTimer <= 0) {
@@ -195,6 +204,7 @@ export class Player {
             if (Math.floor(Date.now() / 50) % 2 === 0) return;
         }
 
+        // Draw Player Sprite FIRST
         this.sprite.draw(
             ctx,
             screenX,
@@ -205,57 +215,69 @@ export class Player {
             this.isAttacking,
             this.swordLevel,
             this.shieldLevel,
-            this.defenseRing
+            this.defenseRing,
+            this.currentAnimation.getCurrentFrame()
         );
 
-        // Draw Sword if attacking
+        // Draw Sword AFTER (on top of player)
         if (this.isAttacking) {
+            console.log('Drawing sword! Direction:', this.direction, 'ScreenPos:', screenX, screenY);
+
             // Sword color based on level
-            const swordColors = ['#C0C0C0', '#FFFFFF', '#4169E1', '#FFD700']; // Silver, White, Blue, Gold
-            const color = swordColors[this.swordLevel - 1] || '#C0C0C0';
+            const swordColors = ['#FF0000', '#FFFFFF', '#4169E1', '#FFD700']; // RED for visibility, White, Blue, Gold
+            const color = swordColors[this.swordLevel - 1] || '#FF0000';
 
             let swordX = screenX + this.width / 2;
             let swordY = screenY + this.height / 2;
-            let swordW = 20;
-            let swordH = 20;
+            let swordW = 24;
+            let swordH = 24;
 
-            if (this.direction === 'down') { swordY += 20; swordW = 10; swordH = 28; }
-            if (this.direction === 'up') { swordY -= 28; swordW = 10; swordH = 28; }
-            if (this.direction === 'left') { swordX -= 28; swordW = 28; swordH = 10; }
-            if (this.direction === 'right') { swordX += 20; swordW = 28; swordH = 10; }
+            if (this.direction === 'down') { swordY += 16; swordW = 12; swordH = 32; }
+            if (this.direction === 'up') { swordY -= 32; swordW = 12; swordH = 32; }
+            if (this.direction === 'left') { swordX -= 32; swordW = 32; swordH = 12; }
+            if (this.direction === 'right') { swordX += 16; swordW = 32; swordH = 12; }
 
-            // Draw Detailed Sword
+            // Draw SUPER VISIBLE test rectangle
+            ctx.fillStyle = '#00FFFF'; // Cyan - very visible
+            ctx.fillRect(swordX, swordY, swordW, swordH);
+
+            // Draw Detailed Sword ON TOP
             if (this.direction === 'up' || this.direction === 'down') {
                 // Vertical Sword
-                const bladeW = 6;
+                const bladeW = 10;
                 const bx = swordX + swordW / 2 - bladeW / 2;
 
-                // Blade
+                // Blade - BRIGHT RED
                 ctx.fillStyle = color;
                 ctx.fillRect(bx, swordY, bladeW, swordH);
 
                 // Hilt (Guard)
-                ctx.fillStyle = '#DAA520'; // Gold
-                const hiltY = this.direction === 'down' ? swordY : swordY + swordH - 6;
-                ctx.fillRect(bx - 4, hiltY, bladeW + 8, 6);
+                ctx.fillStyle = '#FFD700'; // Gold
+                const hiltY = this.direction === 'down' ? swordY : swordY + swordH - 10;
+                ctx.fillRect(bx - 8, hiltY, bladeW + 16, 10);
 
                 // Handle (Brown)
                 ctx.fillStyle = '#8B4513';
-                // const handleY = this.direction === 'down' ? swordY - 4 : swordY + swordH;
-                // ctx.fillRect(bx + 1, handleY, 4, 4); // Hidden by hand usually
+                const handleY = this.direction === 'down' ? swordY - 8 : swordY + swordH;
+                ctx.fillRect(bx + 2, handleY, 6, 8);
             } else {
                 // Horizontal Sword
-                const bladeH = 6;
+                const bladeH = 10;
                 const by = swordY + swordH / 2 - bladeH / 2;
 
-                // Blade
+                // Blade - BRIGHT RED
                 ctx.fillStyle = color;
                 ctx.fillRect(swordX, by, swordW, bladeH);
 
                 // Hilt (Guard)
-                ctx.fillStyle = '#DAA520';
-                const hiltX = this.direction === 'right' ? swordX : swordX + swordW - 6;
-                ctx.fillRect(hiltX, by - 4, 6, bladeH + 8);
+                ctx.fillStyle = '#FFD700';
+                const hiltX = this.direction === 'right' ? swordX : swordX + swordW - 10;
+                ctx.fillRect(hiltX, by - 8, 10, bladeH + 16);
+
+                // Handle
+                ctx.fillStyle = '#8B4513';
+                const handleX = this.direction === 'right' ? swordX - 8 : swordX + swordW;
+                ctx.fillRect(handleX, by + 2, 8, 6);
             }
         }
     }
@@ -263,7 +285,7 @@ export class Player {
     private attack() {
         this.isAttacking = true;
         this.attackCooldown = Player.ATTACK_DURATION;
-        console.log('Attacking with sword level', this.swordLevel);
+        console.log('ATTACK TRIGGERED! Sword level:', this.swordLevel, 'Direction:', this.direction);
     }
 
     public canBlockMagic(projectileDir: { x: number, y: number }): boolean {

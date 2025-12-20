@@ -1,3 +1,6 @@
+import { NPCSprite, NPCType } from './sprites/NPCSprite';
+import { FlameSprite } from './sprites/FlameSprite';
+
 export const GameState = {
     TITLE_SCREEN: 0,
     PLAYING: 1,
@@ -23,72 +26,91 @@ export class TitleScreen {
 
     public render(ctx: CanvasRenderingContext2D, width: number, height: number) {
         // Black background
-        ctx.fillStyle = '#000000';
+        ctx.fillStyle = '#050508';
         ctx.fillRect(0, 0, width, height);
+
+        // Subtly glowing grid background
+        ctx.strokeStyle = '#11111a';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < width; x += 32) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
+            ctx.stroke();
+        }
+        for (let y = 0; y < height; y += 32) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.stroke();
+        }
 
         // Draw Triforce Logo
         const tx = width / 2;
-        const ty = height / 3 - 80;
-        const size = 50;
+        const ty = height / 3 - 40;
+        const size = 60;
+
+        // Glow
+        const grad = ctx.createRadialGradient(tx, ty + size, 0, tx, ty + size, 150);
+        grad.addColorStop(0, 'rgba(255, 215, 0, 0.2)');
+        grad.addColorStop(1, 'rgba(255, 215, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(tx - 150, ty - 50, 300, 250);
 
         ctx.fillStyle = '#FFD700'; // Gold
+        // Top
         ctx.beginPath();
         ctx.moveTo(tx, ty);
-        ctx.lineTo(tx - size, ty + size * 1.732);
-        ctx.lineTo(tx + size, ty + size * 1.732);
+        ctx.lineTo(tx - size / 2, ty + size);
+        ctx.lineTo(tx + size / 2, ty + size);
         ctx.fill();
-
-        // Inner triangle (black) to make it look like 3 triangles
-        ctx.fillStyle = '#000000';
+        // Bottom Left
         ctx.beginPath();
-        ctx.moveTo(tx, ty + size * 1.732);
-        ctx.lineTo(tx - size / 2, ty + size * 1.732 / 2);
-        ctx.lineTo(tx + size / 2, ty + size * 1.732 / 2);
+        ctx.moveTo(tx - size / 2, ty + size);
+        ctx.lineTo(tx - size, ty + size * 2);
+        ctx.lineTo(tx, ty + size * 2);
+        ctx.fill();
+        // Bottom Right
+        ctx.beginPath();
+        ctx.moveTo(tx + size / 2, ty + size);
+        ctx.lineTo(tx, ty + size * 2);
+        ctx.lineTo(tx + size, ty + size * 2);
         ctx.fill();
 
         // Title Text
         ctx.textAlign = 'center';
 
         // "THE LEGEND OF"
-        ctx.font = 'bold 32px monospace';
-        ctx.fillStyle = '#8B0000'; // Shadow
-        ctx.fillText('THE LEGEND OF', width / 2 + 2, height / 2 - 48);
-        ctx.fillStyle = '#FF4444'; // Red
-        ctx.fillText('THE LEGEND OF', width / 2, height / 2 - 50);
+        ctx.font = '800 24px Inter, system-ui, sans-serif';
+        ctx.fillStyle = '#ffd700';
+        ctx.fillText('THE LEGEND OF', width / 2, height / 2 + 60);
 
         // "ZELDA"
-        ctx.font = 'bold 80px monospace';
-        ctx.fillStyle = '#8B0000'; // Shadow
-        ctx.fillText('ZELDA', width / 2 + 4, height / 2 + 34);
-        ctx.fillStyle = '#FF0000'; // Red
-        ctx.fillText('ZELDA', width / 2, height / 2 + 30);
+        const titleY = height / 2 + 130;
+        ctx.font = '900 80px Inter, system-ui, sans-serif';
 
-        // Subtitle
-        ctx.fillStyle = '#AAAAAA';
-        ctx.font = '16px monospace';
-        ctx.fillText('A Zelda-Inspired Adventure', width / 2, height / 2 + 70);
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillText('ZELDA', width / 2, titleY + 4);
+
+        // Gradient for ZELDA
+        const titleGrad = ctx.createLinearGradient(0, titleY - 60, 0, titleY);
+        titleGrad.addColorStop(0, '#ffd700');
+        titleGrad.addColorStop(1, '#ff8c00');
+        ctx.fillStyle = titleGrad;
+        ctx.fillText('ZELDA', width / 2, titleY);
 
         // Press Start (blinking)
         if (this.showPressStart) {
             ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 24px monospace';
-            ctx.fillText('PRESS SPACE TO START', width / 2, height / 2 + 120);
+            ctx.font = 'bold 20px monospace';
+            ctx.fillText('PRESS SPACE TO START', width / 2, height - 80);
         }
 
-        // Controls
-        ctx.fillStyle = '#888888';
-        ctx.font = '14px monospace';
-        ctx.textAlign = 'left';
-        const controlsX = width / 2 - 150;
-        const controlsY = height - 140;
-
-        ctx.fillText('CONTROLS:', controlsX, controlsY);
-        ctx.fillText('Arrow Keys / WASD - Move', controlsX, controlsY + 20);
-        ctx.fillText('Space - Attack', controlsX, controlsY + 40);
-        ctx.fillText('Z - Place Bomb', controlsX, controlsY + 60);
-        ctx.fillText('X - Shoot Arrow', controlsX, controlsY + 80);
-        ctx.fillText('B - Throw Boomerang', controlsX, controlsY + 100);
-        ctx.fillText('M - View Map', controlsX, controlsY + 120);
+        // Controls summary
+        ctx.fillStyle = '#666';
+        ctx.font = '12px monospace';
+        ctx.fillText('WASD: MOVE | SPACE: ATTACK | Z, X, B: ITEMS', width / 2, height - 40);
     }
 }
 
@@ -144,7 +166,15 @@ export class VictoryScreen {
 }
 
 export class CaveScreen {
-    public render(ctx: CanvasRenderingContext2D, width: number, height: number, text: string, items: Array<{ type: any, price?: number }> | null, selectedIndex: number = 0) {
+    private npcSprite: NPCSprite;
+    private flameSprite: FlameSprite;
+
+    constructor() {
+        this.npcSprite = new NPCSprite();
+        this.flameSprite = new FlameSprite();
+    }
+
+    public render(ctx: CanvasRenderingContext2D, width: number, height: number, text: string, items: Array<{ type: number, price?: number }> | null, selectedIndex: number = 0, npcType: NPCType = NPCType.OldMan) {
         // Black background
         ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, width, height);
@@ -154,58 +184,63 @@ export class CaveScreen {
         ctx.lineWidth = 4;
         ctx.strokeRect(50, 50, width - 100, height - 100);
 
-        // Old Man / Woman / Merchant (Red/White square for now)
-        ctx.fillStyle = '#FF0000';
-        ctx.fillRect(width / 2 - 16, height / 2 - 48, 32, 32);
+        // Render NPC
+        // Center position
+        const npcX = width / 2 - 16;
+        const npcY = height / 2 - 48;
 
-        // Fire (Two red/orange squares)
-        const time = Date.now();
-        const flicker = Math.sin(time / 100) > 0;
-        ctx.fillStyle = flicker ? '#FF4400' : '#FF8800';
-        ctx.fillRect(width / 2 - 64, height / 2 - 48, 32, 32);
-        ctx.fillRect(width / 2 + 32, height / 2 - 48, 32, 32);
+        if (npcType !== undefined) {
+            this.npcSprite.draw(ctx, npcX, npcY, 32, 32, npcType);
+        } else {
+            // Default Fallback
+            this.npcSprite.draw(ctx, npcX, npcY, 32, 32, NPCType.OldMan);
+        }
+
+        // Fire (Two flames next to NPC)
+        // Left Fire
+        this.flameSprite.draw(ctx, npcX - 48, npcY + 8, 16, 16);
+
+        // Right Fire
+        this.flameSprite.draw(ctx, npcX + 64, npcY + 8, 16, 16);
+
 
         // Text
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 20px monospace';
+        ctx.font = '16px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(text, width / 2, height / 2 - 90);
+        this.renderText(ctx, text, width / 2, 150);
+        ctx.textAlign = 'left';
 
-        // Items
-        if (items && items.length > 0) {
-            const startX = width / 2 - ((items.length - 1) * 60) / 2;
-
+        // Items (Shop)
+        if (items) {
+            const startX = width / 2 - (items.length * 60) / 2;
             items.forEach((item, index) => {
-                const x = startX + index * 60;
-                const y = height / 2 + 30;
+                const ix = startX + index * 60;
+                const iy = 220;
 
-                // Selection Highlight
-                if (index === selectedIndex) {
-                    ctx.fillStyle = '#FFFF00'; // Yellow highlight
-                    ctx.fillRect(x - 20, y - 20, 40, 40);
+                // Draw Price
+                if (item.price) {
+                    ctx.fillText(item.price.toString(), ix, iy - 20);
+                    // Draw Rupee Icon next to price?
                 }
 
-                // Draw item (placeholder circle if no sprite)
-                ctx.fillStyle = '#00FF00'; // Green item
-                ctx.beginPath();
-                ctx.arc(x, y, 16, 0, Math.PI * 2);
-                ctx.fill();
+                // Draw Item Placeholder (Circle for now if no sprite)
+                ctx.fillStyle = '#00FF00';
+                ctx.fillRect(ix, iy, 16, 16);
 
-                // Price
-                if (item.price !== undefined) {
+                if (index === selectedIndex) {
+                    // Cursor
                     ctx.fillStyle = '#FFFFFF';
-                    ctx.font = '16px monospace';
-                    ctx.fillText(item.price.toString(), x, y + 30);
-
-                    // Rupee symbol (simple X)
-                    ctx.font = '12px monospace';
-                    ctx.fillText('X', x - 15, y + 30);
+                    ctx.fillRect(ix, iy + 24, 16, 8);
                 }
             });
-
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = '16px monospace';
-            ctx.fillText('SELECT WITH ARROWS, SPACE TO BUY/TAKE', width / 2, height / 2 + 100);
         }
+    }
+
+    private renderText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number) {
+        const lines = text.split('\n');
+        lines.forEach((line, i) => {
+            ctx.fillText(line, x, y + i * 20);
+        });
     }
 }

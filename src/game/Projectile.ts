@@ -14,7 +14,6 @@ export class Projectile {
     public isMagic: boolean = false;
 
     private sprite: ProjectileSprite | null = null;
-    private color: string = 'yellow';
 
     constructor(x: number, y: number, direction: { x: number, y: number }, speed: number, damage: number, isMagic: boolean = false) {
         this.x = x;
@@ -23,10 +22,6 @@ export class Projectile {
         this.speed = speed;
         this.damage = damage;
         this.isMagic = isMagic;
-
-        if (this.isMagic) {
-            this.color = '#00FFFF'; // Cyan for magic
-        }
 
         this.sprite = new ProjectileSprite();
     }
@@ -51,12 +46,6 @@ export class Projectile {
                 this,
                 { x: camera.x, y: camera.y }
             );
-        } else {
-            // Fallback
-            const screenX = Math.floor(this.x - camera.x);
-            const screenY = Math.floor(this.y - camera.y);
-            ctx.fillStyle = this.color;
-            ctx.fillRect(screenX, screenY, this.width, this.height);
         }
     }
 

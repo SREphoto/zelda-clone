@@ -13,7 +13,11 @@ import { WorldMap } from './WorldMap';
 import { Boomerang } from './Boomerang';
 import { GameState, TitleScreen, GameOverScreen, VictoryScreen, CaveScreen } from './GameState';
 import { Door, SecretWall } from './Door';
+import { NPCType } from './sprites/NPCSprite';
 import { OverworldData } from './data/OverworldData';
+import { Particle, ParticleType } from './Particle';
+import { ParticleSprite } from './sprites/ParticleSprite';
+import { resources } from './ResourceManager';
 
 export class Game {
     private loop: Loop;
@@ -32,6 +36,8 @@ export class Game {
     private bombs: Bomb[] = [];
     private arrows: Arrow[] = [];
     private boomerangs: Boomerang[] = [];
+    private particles: Particle[] = [];
+    private particleSprite: ParticleSprite;
 
     // World Map
     private worldMap: WorldMap;
@@ -47,7 +53,7 @@ export class Game {
     private bombAmmo: number = 4;
 
     // Game State Management
-    private gameState: GameState = GameState.PLAYING;
+    private gameState: GameState = GameState.TITLE_SCREEN;
     private titleScreen: TitleScreen;
     private gameOverScreen: GameOverScreen;
     private victoryScreen: VictoryScreen;
@@ -57,6 +63,7 @@ export class Game {
     private currentCaveText: string = "";
     private currentCaveItems: Array<{ type: ItemType, price?: number }> | null = null;
     private currentCaveSelection: number = 0;
+    private currentCaveNpcType: NPCType | undefined = undefined;
 
     // Doors and Secrets
     private doors: Door[] = [];
@@ -76,6 +83,7 @@ export class Game {
         this.gameOverScreen = new GameOverScreen();
         this.victoryScreen = new VictoryScreen();
         this.caveScreen = new CaveScreen();
+        this.particleSprite = new ParticleSprite();
     }
 
     public init(canvas: HTMLCanvasElement, onHealthChange: (health: number) => void) {
@@ -91,6 +99,42 @@ export class Game {
         // Canvas size includes HUD space
         canvas.width = this.width;
         canvas.height = this.height + 32;
+
+        // Make canvas focusable and focus it
+        canvas.tabIndex = 1;
+        canvas.focus();
+
+        // Visual feedback when focused
+        canvas.style.outline = '3px solid #FFD700';
+        canvas.addEventListener('blur', () => {
+            canvas.style.outline = '3px solid #666';
+        });
+        canvas.addEventListener('focus', () => {
+            canvas.style.outline = '3px solid #FFD700';
+        });
+
+        // Add click handler to start game from title screen AND refocus
+        canvas.addEventListener('click', () => {
+            canvas.focus(); // Refocus after click
+            if (this.gameState === GameState.TITLE_SCREEN) {
+                this.gameState = GameState.PLAYING;
+                console.log('Game Started! (Click)');
+            }
+        });
+
+        // CRITICAL: Refocus canvas on ANY document click
+        document.addEventListener('click', (e) => {
+            if (e.target !== canvas) {
+                canvas.focus();
+                console.log('Canvas refocused from document click');
+            }
+        });
+
+        // Also refocus when window regains focus
+        window.addEventListener('focus', () => {
+            canvas.focus();
+            console.log('Canvas refocused from window focus');
+        });
 
         this.camera = new Camera(this.width, this.height);
         this.tilemap = new Tilemap(); // Load Overworld data
@@ -112,7 +156,10 @@ export class Game {
         this.arrows = [];
         console.log('Game Initialized', this.width, this.height);
 
-        this.loop.start();
+        // Load resources then start
+        resources.loadAll().then(() => {
+            this.loop.start();
+        });
     }
 
     private update(dt: number) {
@@ -124,7 +171,8 @@ export class Game {
         // Handle Title Screen
         if (this.gameState === GameState.TITLE_SCREEN) {
             this.titleScreen.update(dt);
-            if (this.input.isPressed('Space')) {
+            // Check for Space or Enter to start
+            if (this.input.isPressed('Space') || this.input.isPressed('Enter')) {
                 this.gameState = GameState.PLAYING;
                 console.log('Game Started!');
             }
@@ -257,16 +305,17 @@ export class Game {
         if (this.input.isPressed('KeyB')) {
             if (this.player.hasBoomerang && this.boomerangs.length === 0) {
                 const p = this.player;
-                let bx = p.x + p.width / 2 - 4;
-                let by = p.y + p.height / 2 - 4;
-                let dir = { x: 0, y: 0 };
+                const bx = p.x + p.width / 2 - 4;
+                const by = p.y + p.height / 2 - 4;
+                const box = { x: bx, y: by, width: 8, height: 8 };
+                const moveDir = { x: 0, y: 0 };
 
-                if (p.direction === 'up') { dir.y = -1; by -= 8; }
-                else if (p.direction === 'down') { dir.y = 1; by += 8; }
-                else if (p.direction === 'left') { dir.x = -1; bx -= 8; }
-                else if (p.direction === 'right') { dir.x = 1; bx += 8; }
+                if (p.direction === 'up') { moveDir.y = -1; box.y -= 8; }
+                else if (p.direction === 'down') { moveDir.y = 1; box.y += 8; }
+                else if (p.direction === 'left') { moveDir.x = -1; box.x -= 8; }
+                else if (p.direction === 'right') { moveDir.x = 1; box.x += 8; }
 
-                this.boomerangs.push(new Boomerang(bx, by, dir, this.player));
+                this.boomerangs.push(new Boomerang(box.x, box.y, moveDir, this.player));
                 console.log('Boomerang Thrown!');
             }
         }
@@ -275,19 +324,20 @@ export class Game {
         if (this.input.isPressed('KeyX')) {
             if (this.rupees > 0) {
                 const p = this.player;
-                let ax = p.x + p.width / 2;
-                let ay = p.y + p.height / 2;
-                let dir = { x: 0, y: 0 };
+                const ax = p.x + p.width / 2;
+                const ay = p.y + p.height / 2;
+                const arrowPos = { x: ax, y: ay };
+                const arrowDir = { x: 0, y: 0 };
 
-                if (p.direction === 'up') { ay -= 16; dir.y = -1; }
-                if (p.direction === 'down') { ay += 16; dir.y = 1; }
-                if (p.direction === 'left') { ax -= 16; dir.x = -1; }
-                if (p.direction === 'right') { ax += 16; dir.x = 1; }
+                if (p.direction === 'up') { arrowPos.y -= 16; arrowDir.y = -1; }
+                if (p.direction === 'down') { arrowPos.y += 16; arrowDir.y = 1; }
+                if (p.direction === 'left') { arrowPos.x -= 16; arrowDir.x = -1; }
+                if (p.direction === 'right') { arrowPos.x += 16; arrowDir.x = 1; }
 
-                if (dir.y !== 0) ax -= 2;
-                if (dir.x !== 0) ay -= 2;
+                if (arrowDir.y !== 0) arrowPos.x -= 2;
+                if (arrowDir.x !== 0) arrowPos.y -= 2;
 
-                this.arrows.push(new Arrow(ax, ay, dir, this.player.hasSilverArrows));
+                this.arrows.push(new Arrow(arrowPos.x, arrowPos.y, arrowDir, this.player.hasSilverArrows));
                 this.rupees--;
                 console.log('Arrow Fired! Rupees:', this.rupees);
             }
@@ -399,6 +449,7 @@ export class Game {
                 } else {
                     this.currentCaveItems = null;
                 }
+                this.currentCaveNpcType = entrance.npcType;
             }
         }
     }
@@ -590,6 +641,14 @@ export class Game {
             }
         });
 
+        // Update Particles
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            this.particles[i].update(dt);
+            if (this.particles[i].isDead()) {
+                this.particles.splice(i, 1);
+            }
+        }
+
         // Update Bombs
         for (let i = this.bombs.length - 1; i >= 0; i--) {
             const bomb = this.bombs[i];
@@ -598,6 +657,11 @@ export class Game {
             if (bomb.state === BombState.Done) {
                 this.bombs.splice(i, 1);
                 continue;
+            }
+
+            if (bomb.justExploded) {
+                this.particles.push(new Particle(bomb.x + bomb.width / 2, bomb.y + bomb.height / 2, ParticleType.Explosion));
+                bomb.justExploded = false;
             }
 
             if (bomb.state === BombState.Exploding) {
@@ -734,7 +798,7 @@ export class Game {
             this.player.health = 3;
             // Reset to start of current room? Or start of game?
             // For now, start of game
-            this.init(this.ctx!.canvas, (_h) => { });
+            this.init(this.ctx!.canvas, () => { });
         }
     }
 
@@ -849,6 +913,9 @@ export class Game {
     }
 
     private handleEnemyDeath(enemy: Enemy) {
+        // Spawn death particle
+        this.particles.push(new Particle(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, ParticleType.Poof));
+
         // Zol Splitting Logic
         if (enemy.type === EnemyType.Zol) {
             console.log('Zol Split!');
@@ -904,96 +971,120 @@ export class Game {
         if (!this.ctx || !this.camera || !this.tilemap || !this.player) return;
 
         // Clear Screen
-        this.ctx.fillStyle = 'black';
-        this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+        this.ctx.fillStyle = '#000000';
+        this.ctx.fillRect(0, 0, this.width, this.height + 32);
 
-        // Render HUD
+        // Render Game State
+        if (this.gameState === GameState.TITLE_SCREEN) {
+            this.titleScreen.render(this.ctx, this.width, this.height + 32);
+            return;
+        }
+
+        if (this.gameState === GameState.GAME_OVER) {
+            this.gameOverScreen.render(this.ctx, this.width, this.height + 32);
+            return;
+        }
+
+        if (this.gameState === GameState.VICTORY) {
+            this.victoryScreen.render(this.ctx, this.width, this.height + 32);
+            return;
+        }
+
+        if (this.gameState === GameState.CAVE) {
+            this.caveScreen.render(this.ctx, this.width, this.height + 32, this.currentCaveText, this.currentCaveItems, this.currentCaveSelection, this.currentCaveNpcType);
+            return;
+        }
+
+        // --- PLAYING STATE ---
+
+        // Draw World (Tilemap)
+        if (this.isTransitioning) {
+            this.tilemap.render(this.ctx, this.camera);
+            this.drawEntities();
+
+        } else if (this.showingMap) {
+            this.worldMap.render(this.ctx, this.width, this.height + 32);
+        } else {
+            // Normal Render
+            this.tilemap.render(this.ctx, this.camera);
+            this.drawEntities();
+        }
+
+        // HUD
         this.hud.render(this.ctx, this.player, this.rupees, this.bombAmmo);
 
-        // Render Game World (Shifted down)
-        this.ctx.save();
-        this.ctx.translate(0, 32);
+        // Focus indicator - show message if not focused
+        if (document.activeElement !== this.ctx.canvas) {
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            this.ctx.fillRect(0, this.height / 2 - 40, this.width, 80);
 
-        // Clip to game area to prevent drawing over HUD if camera moves weirdly
-        this.ctx.beginPath();
-        this.ctx.rect(0, 0, this.width, this.height);
-        this.ctx.clip();
+            this.ctx.fillStyle = '#FFD700';
+            this.ctx.font = 'bold 20px Inter, system-ui, sans-serif';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('CLICK THE GAME TO PLAY', this.width / 2, this.height / 2 - 10);
 
-        this.tilemap.render(this.ctx, this.camera);
+            this.ctx.fillStyle = '#FFF';
+            this.ctx.font = '14px Inter, system-ui, sans-serif';
+            this.ctx.fillText('Controls won\'t work until you click here!', this.width / 2, this.height / 2 + 20);
+        }
+    }
 
-        this.doors.forEach(door => {
-            if (this.ctx && this.camera) {
-                door.render(this.ctx, this.camera);
-            }
-        });
+    private drawEntities() {
+        if (!this.ctx || !this.player) return;
 
+        // Draw Secret Walls (Under everything)
         this.secretWalls.forEach(wall => {
-            if (this.ctx && this.camera && !wall.isRevealed) {
-                wall.render(this.ctx, this.camera);
-            }
+            wall.render(this.ctx!, this.camera!);
         });
 
-        this.bombs.forEach(bomb => {
-            if (this.ctx && this.camera) {
-                bomb.render(this.ctx, this.camera);
-            }
+        // Draw Doors
+        this.doors.forEach(door => {
+            door.render(this.ctx!, this.camera!);
         });
 
+        // Draw Items
         this.items.forEach(item => {
-            if (this.ctx && this.camera) {
-                item.render(this.ctx, this.camera);
-            }
+            item.render(this.ctx!, this.camera!);
         });
 
+        // Draw Bombs
+        this.bombs.forEach(bomb => {
+            bomb.render(this.ctx!, this.camera!);
+        });
+
+        // Draw Enemies
         this.enemies.forEach(enemy => {
-            if (this.ctx && this.camera) {
-                enemy.render(this.ctx, this.camera);
-            }
+            enemy.render(this.ctx!, this.camera!);
         });
 
+        // Draw Projectiles
         this.projectiles.forEach(proj => {
-            if (this.ctx && this.camera) {
-                proj.render(this.ctx, this.camera);
-            }
+            proj.render(this.ctx!, this.camera!);
         });
 
+        // Draw Boomerangs
+        this.boomerangs.forEach(rang => {
+            rang.render(this.ctx!, this.camera!);
+        });
+
+        // Draw Arrows
         this.arrows.forEach(arrow => {
-            if (this.ctx && this.camera) {
-                arrow.render(this.ctx, this.camera);
-            }
+            arrow.render(this.ctx!, this.camera!);
         });
 
-        this.boomerangs.forEach(boomerang => {
-            if (this.ctx && this.camera) {
-                boomerang.render(this.ctx, this.camera);
-            }
+        // Draw Particles
+        this.particles.forEach(p => {
+            this.particleSprite.draw(this.ctx!, p, this.camera!);
         });
 
-        this.player.render(this.ctx, this.camera);
-
-        this.ctx.restore();
-
-        // Render World Map overlay if showing
-        if (this.showingMap) {
-            this.worldMap.render(this.ctx, this.ctx.canvas.width, this.ctx.canvas.height);
-        }
-
-        // Render Game State Overlays
-        if (this.gameState === GameState.TITLE_SCREEN) {
-            this.titleScreen.render(this.ctx, this.ctx.canvas.width, this.ctx.canvas.height);
-        } else if (this.gameState === GameState.GAME_OVER) {
-            this.gameOverScreen.render(this.ctx, this.ctx.canvas.width, this.ctx.canvas.height);
-        } else if (this.gameState === GameState.VICTORY) {
-            this.victoryScreen.render(this.ctx, this.ctx.canvas.width, this.ctx.canvas.height);
-        } else if (this.gameState === GameState.CAVE) {
-            this.caveScreen.render(this.ctx, this.ctx.canvas.width, this.ctx.canvas.height, this.currentCaveText, this.currentCaveItems, this.currentCaveSelection);
-        }
+        // Draw Player
+        this.player.render(this.ctx, this.camera!);
     }
 
     private restartGame() {
         if (!this.ctx) return;
         this.gameState = GameState.PLAYING;
-        this.init(this.ctx.canvas, (_h) => { });
+        this.init(this.ctx.canvas, () => { });
         console.log('Game Restarted!');
     }
 

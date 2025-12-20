@@ -1,5 +1,6 @@
 import { Camera } from './Camera';
 import { OverworldData, TILE_FLOOR, TILE_WALL, TILE_WATER, TILE_BLOCK, TILE_TREE, TILE_SAND, TILE_GRAVE, TILE_STAIRS } from './data/OverworldData';
+import { resources } from './ResourceManager';
 
 export class Tilemap {
     public tiles: number[][];
@@ -66,10 +67,15 @@ export class Tilemap {
     }
 
     public render(ctx: CanvasRenderingContext2D, camera: Camera) {
+        const tilesImg = resources.getImage('/assets/tiles.png');
+        if (!tilesImg) return;
+
         const startCol = Math.floor(camera.x / this.tileSize);
         const endCol = startCol + (camera.width / this.tileSize) + 1;
         const startRow = Math.floor(camera.y / this.tileSize);
         const endRow = startRow + (camera.height / this.tileSize) + 1;
+
+        const srcTileSize = 256;
 
         for (let y = startRow; y <= endRow; y++) {
             for (let x = startCol; x <= endCol; x++) {
@@ -78,104 +84,29 @@ export class Tilemap {
                     const tileX = Math.floor((x * this.tileSize) - camera.x);
                     const tileY = Math.floor((y * this.tileSize) - camera.y);
 
-                    // Draw Floor Background first
-                    if (tile === TILE_SAND) {
-                        ctx.fillStyle = '#EEDDAA'; // Sand
-                        ctx.fillRect(tileX, tileY, this.tileSize, this.tileSize);
-                        // Sand texture
-                        ctx.fillStyle = '#DDBB88';
-                        if ((x + y) % 2 === 0) ctx.fillRect(tileX + 8, tileY + 8, 2, 2);
-                        if ((x * y) % 3 === 0) ctx.fillRect(tileX + 20, tileY + 20, 2, 2);
-                    } else {
-                        ctx.fillStyle = '#eebb88'; // Standard Floor
-                        ctx.fillRect(tileX, tileY, this.tileSize, this.tileSize);
-                        // Dirt texture
-                        ctx.fillStyle = '#cc9966';
-                        if ((x + y) % 3 === 0) ctx.fillRect(tileX + 10, tileY + 10, 4, 4);
-                        if ((x * y) % 5 === 0) ctx.fillRect(tileX + 22, tileY + 5, 2, 2);
+                    // Source coordinates (sx, sy) on the spritesheet (1024x1024)
+                    let sx = 0;
+                    let sy = 0;
+
+                    switch (tile) {
+                        case TILE_FLOOR: sx = 0; sy = 0; break;
+                        case TILE_SAND: sx = 256; sy = 0; break;
+                        case TILE_WALL: sx = 512; sy = 0; break;
+                        case TILE_WATER: sx = 0; sy = 256; break;
+                        case TILE_BLOCK: sx = 0; sy = 768; break;
+                        case TILE_TREE: sx = 0; sy = 512; break;
+                        case TILE_GRAVE: sx = 512; sy = 512; break; // Approximating grave position
+                        case TILE_STAIRS: sx = 768; sy = 768; break; // Hole/Stairs
+                        default: sx = 0; sy = 0; break;
                     }
 
-                    if (tile === TILE_WALL) {
-                        ctx.fillStyle = '#555'; // Wall
-                        ctx.fillRect(tileX, tileY, this.tileSize, this.tileSize);
-
-                        // Brick pattern
-                        ctx.fillStyle = '#444';
-                        ctx.fillRect(tileX + 2, tileY + 2, 12, 12);
-                        ctx.fillRect(tileX + 18, tileY + 2, 12, 12);
-                        ctx.fillRect(tileX + 2, tileY + 18, 12, 12);
-                        ctx.fillRect(tileX + 18, tileY + 18, 12, 12);
-
-                        // Bevel effect
-                        ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                        ctx.fillRect(tileX, tileY, this.tileSize, 2);
-                        ctx.fillRect(tileX, tileY, 2, this.tileSize);
-
-                    } else if (tile === TILE_WATER) {
-                        ctx.fillStyle = '#0000AA'; // Water
-                        ctx.fillRect(tileX, tileY, this.tileSize, this.tileSize);
-                        // Wave pattern (animated)
-                        ctx.fillStyle = '#4444FF';
-                        const offset = Math.floor(Date.now() / 200) % 8;
-                        if ((x + y) % 2 === 0) {
-                            ctx.fillRect(tileX + 4 + offset, tileY + 8, 8, 2);
-                            ctx.fillRect(tileX + 16 - offset, tileY + 20, 8, 2);
-                        } else {
-                            ctx.fillRect(tileX + 8, tileY + 4 + offset, 8, 2);
-                        }
-
-                    } else if (tile === TILE_BLOCK) {
-                        ctx.fillStyle = '#008800'; // Block (Green)
-                        ctx.fillRect(tileX, tileY, this.tileSize, this.tileSize);
-                        // Detail
-                        ctx.strokeStyle = '#004400';
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(tileX + 4, tileY + 4, 24, 24);
-                        ctx.beginPath();
-                        ctx.moveTo(tileX + 4, tileY + 4); ctx.lineTo(tileX + 28, tileY + 28);
-                        ctx.moveTo(tileX + 28, tileY + 4); ctx.lineTo(tileX + 4, tileY + 28);
-                        ctx.stroke();
-
-                    } else if (tile === TILE_TREE) {
-                        // Tree (Green Circle)
-                        ctx.fillStyle = '#006600';
-                        ctx.beginPath();
-                        ctx.arc(tileX + 16, tileY + 16, 14, 0, Math.PI * 2);
-                        ctx.fill();
-
-                        // Leaf texture
-                        ctx.fillStyle = '#008800';
-                        ctx.beginPath();
-                        ctx.arc(tileX + 12, tileY + 12, 6, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.beginPath();
-                        ctx.arc(tileX + 20, tileY + 14, 5, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.beginPath();
-                        ctx.arc(tileX + 14, tileY + 20, 5, 0, Math.PI * 2);
-                        ctx.fill();
-
-                    } else if (tile === TILE_GRAVE) {
-                        // Grave (Grey Stone)
-                        ctx.fillStyle = '#777';
-                        ctx.fillRect(tileX + 8, tileY + 4, 16, 24);
-                        // Cross
-                        ctx.fillStyle = '#333';
-                        ctx.fillRect(tileX + 14, tileY + 8, 4, 12);
-                        ctx.fillRect(tileX + 10, tileY + 12, 12, 4);
-                        // Shadow
-                        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                        ctx.fillRect(tileX + 24, tileY + 4, 2, 24);
-
-                    } else if (tile === TILE_STAIRS) {
-                        // Stairs (Black Square)
-                        ctx.fillStyle = '#000';
-                        ctx.fillRect(tileX + 8, tileY + 8, 16, 16);
-                        // Steps
-                        ctx.fillStyle = '#333';
-                        ctx.fillRect(tileX + 8, tileY + 12, 16, 2);
-                        ctx.fillRect(tileX + 8, tileY + 18, 16, 2);
+                    // Animate Water (Simple toggle between adjacent tiles if they exist)
+                    if (tile === TILE_WATER) {
+                        const frame = Math.floor(Date.now() / 500) % 4;
+                        sx = frame * 256;
                     }
+
+                    ctx.drawImage(tilesImg, sx, sy, srcTileSize, srcTileSize, tileX, tileY, this.tileSize, this.tileSize);
                 }
             }
         }

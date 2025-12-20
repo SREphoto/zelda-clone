@@ -1,5 +1,6 @@
 import { EnemyType } from '../Enemy';
 import { ItemType } from '../Item';
+import { NPCType } from '../sprites/NPCSprite';
 
 export interface ScreenData {
     tiles: number[][];
@@ -7,7 +8,7 @@ export interface ScreenData {
     items?: Array<{ type: ItemType; x: number; y: number; price?: number }>;
     secretWalls?: Array<{ x: number; y: number; requiresCandle: boolean }>;
     doors?: Array<{ x: number; y: number; direction: 'up' | 'down' | 'left' | 'right'; isLocked: boolean }>;
-    caveEntrance?: { x: number; y: number; text?: string };
+    caveEntrance?: { x: number; y: number; text?: string; npcType?: NPCType };
 }
 
 // Tile constants
@@ -152,12 +153,16 @@ for (let y = 0; y < 8; y++) {
 
 // --- SPECIAL SCREENS OVERRIDES ---
 
-// Start Screen (7,7)
+// Start Screen (7,7) - Tutorial area with easy enemies
 OverworldData["7,7"] = {
     tiles: createRoom(TILE_FLOOR),
-    enemies: [], // Safe zone
-    caveEntrance: { x: 256, y: 100, text: "IT'S DANGEROUS TO GO ALONE! TAKE THIS." },
-    items: [{ type: ItemType.Heart, x: 256, y: 200 }] // Free heart (should be Sword, but using Heart for now as Sword is default weapon)
+    enemies: [
+        { type: EnemyType.OctorokRed, x: 150, y: 150 },
+        { type: EnemyType.OctorokRed, x: 350, y: 150 },
+        { type: EnemyType.OctorokRed, x: 250, y: 250 }
+    ], // 3 weak enemies to practice combat
+    caveEntrance: { x: 256, y: 100, text: "IT'S DANGEROUS TO GO ALONE! TAKE THIS.", npcType: NPCType.OldMan },
+    items: [{ type: ItemType.Heart, x: 256, y: 200 }]
 };
 
 // Boss Arenas (Scattered for testing/challenge)
@@ -216,7 +221,7 @@ OverworldData["8,1"] = {
 OverworldData["6,7"] = {
     tiles: createRoom(TILE_FLOOR),
     enemies: [],
-    caveEntrance: { x: 256, y: 100, text: "BUY SOMETHIN' WILL YA!" },
+    caveEntrance: { x: 256, y: 100, text: "BUY SOMETHIN' WILL YA!", npcType: NPCType.Merchant },
     items: [
         { type: ItemType.MagicalShield, x: 0, y: 0, price: 90 },
         { type: ItemType.Bomb, x: 0, y: 0, price: 20 },
@@ -234,5 +239,5 @@ OverworldData["5,5"] = { // Graveyard Secret
     tiles: createRoom(TILE_FLOOR),
     enemies: [{ type: EnemyType.Ghini, x: 100, y: 100 }, { type: EnemyType.Ghini, x: 400, y: 100 }],
     items: [{ type: ItemType.BlueRing, x: 256, y: 176, price: 250 }],
-    caveEntrance: { x: 256, y: 176, text: "IT'S A SECRET TO EVERYBODY." }
+    caveEntrance: { x: 256, y: 176, text: "IT'S A SECRET TO EVERYBODY.", npcType: NPCType.Moblin }
 };

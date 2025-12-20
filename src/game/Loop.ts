@@ -4,6 +4,7 @@ export class Loop {
   private animationFrameId: number = 0;
   private update: (dt: number) => void;
   private render: () => void;
+  private frameCount: number = 0;
 
   constructor(update: (dt: number) => void, render: () => void) {
     this.update = update;
@@ -14,12 +15,14 @@ export class Loop {
     if (this.running) return;
     this.running = true;
     this.lastTime = performance.now();
+    console.log('🎮 Game Loop STARTED');
     this.loop(this.lastTime);
   }
 
   public stop() {
     this.running = false;
     cancelAnimationFrame(this.animationFrameId);
+    console.log('🛑 Game Loop STOPPED');
   }
 
   private loop = (timestamp: number) => {
@@ -30,6 +33,12 @@ export class Loop {
 
     this.update(dt);
     this.render();
+
+    // Log every 60 frames (once per second at 60fps)
+    this.frameCount++;
+    if (this.frameCount % 60 === 0) {
+      console.log(`🔄 Game loop running - Frame ${this.frameCount}, dt: ${dt.toFixed(3)}s`);
+    }
 
     this.animationFrameId = requestAnimationFrame(this.loop);
   };

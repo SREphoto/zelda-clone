@@ -15,6 +15,7 @@ export class Bomb {
     public height: number = 16;
     public state: BombState = BombState.Fuse;
     public damage: number = 4; // Bombs deal heavy damage
+    public justExploded: boolean = false;
 
     private timer: number = 0;
     private static FUSE_TIME = 1.5;
@@ -33,6 +34,7 @@ export class Bomb {
         if (this.state === BombState.Fuse) {
             if (this.timer >= Bomb.FUSE_TIME) {
                 this.state = BombState.Exploding;
+                this.justExploded = true;
                 this.timer = 0;
                 // Expand hitbox for explosion
                 this.x -= 16;
