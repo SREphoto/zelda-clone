@@ -76,7 +76,8 @@ export class ResourceManager {
     }
 
     public getImage(src: string): HTMLCanvasElement | HTMLImageElement | undefined {
-        return this.images.get(src);
+        const key = src.startsWith('/') ? src.slice(1) : src;
+        return this.images.get(key);
     }
 }
 
